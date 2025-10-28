@@ -1,0 +1,251 @@
+id,symbol,name
+bitcoin,BTC,Bitcoin
+ethereum,ETH,Ethereum
+tether,USDT,Tether
+binancecoin,BNB,BNB
+ripple,XRP,XRP
+solana,SOL,Solana
+usd-coin,USDC,USDC
+staked-ether,STETH,Lido Staked Ether
+tron,TRX,TRON
+dogecoin,DOGE,Dogecoin
+cardano,ADA,Cardano
+wrapped-steth,WSTETH,Wrapped stETH
+wrapped-bitcoin,WBTC,Wrapped Bitcoin
+wrapped-beacon-eth,WBETH,Wrapped Beacon ETH
+figure-heloc,FIGR_HELOC,Figure Heloc
+chainlink,LINK,Chainlink
+ethena-usde,USDE,Ethena USDe
+wrapped-eeth,WEETH,Wrapped eETH
+stellar,XLM,Stellar
+hyperliquid,HYPE,Hyperliquid
+bitcoin-cash,BCH,Bitcoin Cash
+usds,USDS,USDS
+binance-bridged-usdt-bnb-smart-chain,BSC-USD,Binance Bridged USDT (BNB Smart Chain)
+sui,SUI,Sui
+leo-token,LEO,LEO Token
+weth,WETH,WETH
+avalanche-2,AVAX,Avalanche
+coinbase-wrapped-btc,CBBTC,Coinbase Wrapped BTC
+usdt0,USDT0,USDT0
+litecoin,LTC,Litecoin
+hedera-hashgraph,HBAR,Hedera
+whitebit,WBT,WhiteBIT Coin
+shiba-inu,SHIB,Shiba Inu
+monero,XMR,Monero
+ethena-staked-usde,SUSDE,Ethena Staked USDe
+the-open-network,TON,Toncoin
+mantle,MNT,Mantle
+crypto-com-chain,CRO,Cronos
+dai,DAI,Dai
+polkadot,DOT,Polkadot
+zcash,ZEC,Zcash
+memecore,M,MemeCore
+bittensor,TAO,Bittensor
+uniswap,UNI,Uniswap
+susds,SUSDS,sUSDS
+world-liberty-financial,WLFI,World Liberty Financial
+okb,OKB,OKB
+aave,AAVE,Aave
+bitget-token,BGB,Bitget Token
+ethena,ENA,Ethena
+blackrock-usd-institutional-digital-liquidity-fund,BUIDL,BlackRock USD Institutional Digital Liquidity Fund
+pepe,PEPE,Pepe
+paypal-usd,PYUSD,PayPal USD
+near,NEAR,NEAR Protocol
+usd1-wlfi,USD1,USD1
+chainopera-ai,COAI,ChainOpera AI
+jito-staked-sol,JITOSOL,Jito Staked SOL
+ethereum-classic,ETC,Ethereum Classic
+binance-peg-weth,WETH,Binance-Peg WETH
+aptos,APT,Aptos
+falcon-finance,USDF,Falcon USD
+ondo-finance,ONDO,Ondo
+tether-gold,XAUT,Tether Gold
+jupiter-perpetuals-liquidity-provider-token,JLP,Jupiter Perpetuals Liquidity Provider Token
+polygon-ecosystem-token,POL,POL (ex-MATIC)
+aster-2,ASTER,Aster
+htx-dao,HTX,HTX DAO
+usdtb,USDTB,USDtb
+worldcoin-wld,WLD,Worldcoin
+gatechain-token,GT,Gate
+hash-2,HASH,Provenance Blockchain
+kucoin-shares,KCS,KuCoin
+rocket-pool-eth,RETH,Rocket Pool ETH
+story-2,IP,Story
+arbitrum,ARB,Arbitrum
+pi-network,PI,Pi Network
+binance-staked-sol,BNSOL,Binance Staked SOL
+internet-computer,ICP,Internet Computer
+algorand,ALGO,Algorand
+kelp-dao-restaked-eth,RSETH,Kelp DAO Restaked ETH
+cosmos,ATOM,Cosmos Hub
+vechain,VET,VeChain
+stakewise-v3-oseth,OSETH,StakeWise Staked ETH
+wbnb,WBNB,Wrapped BNB
+pax-gold,PAXG,PAX Gold
+sky,SKY,Sky
+liquid-staked-ethereum,LSETH,Liquid Staked ETH
+kinetic-staked-hype,KHYPE,Kinetiq Staked HYPE
+bfusd,BFUSD,BFUSD
+lombard-staked-btc,LBTC,Lombard Staked BTC
+kaspa,KAS,Kaspa
+syrupusdc,SYRUPUSDC,Syrup USDC
+flare-networks,FLR,Flare
+pudgy-penguins,PENGU,Pudgy Penguins
+pump-fun,PUMP,Pump.fun
+render-token,RENDER,Render
+renzo-restaked-eth,EZETH,Renzo Restaked ETH
+quant-network,QNT,Quant
+binance-bridged-usdc-bnb-smart-chain,USDC,Binance Bridged USDC (BNB Smart Chain)
+nexo,NEXO,NEXO
+official-trump,TRUMP,Official Trump
+sei-network,SEI,Sei
+xdce-crowd-sale,XDC,XDC Network
+solv-btc,SOLVBTC,Solv Protocol BTC
+jupiter-exchange-solana,JUP,Jupiter
+bonk,BONK,Bonk
+filecoin,FIL,Filecoin
+first-digital-usd,FDUSD,First Digital USD
+immutable-x,IMX,Immutable
+global-dollar,USDG,Global Dollar
+morpho,MORPHO,Morpho
+mantle-staked-ether,METH,Mantle Staked Ether
+pancakeswap-token,CAKE,PancakeSwap
+ripple-usd,RLUSD,Ripple USD
+jupiter-staked-sol,JUPSOL,Jupiter Staked SOL
+arbitrum-bridged-wbtc-arbitrum-one,WBTC,Arbitrum Bridged WBTC (Arbitrum One)
+spx6900,SPX,SPX6900
+clbtc,CLBTC,clBTC
+fasttoken,FTN,Fasttoken
+injective-protocol,INJ,Injective
+ousg,OUSG,OUSG
+doublezero,2Z,DoubleZero
+celestia,TIA,Celestia
+lido-dao,LDO,Lido DAO
+msol,MSOL,Marinade Staked SOL
+blockstack,STX,Stacks
+superstate-short-duration-us-government-securities-fund-ustb,USTB,Superstate Short Duration U.S. Government Securities Fund (USTB)
+optimism,OP,Optimism
+curve-dao-token,CRV,Curve DAO
+cgeth-hashkey-cloud,CGETH.HASHKEY,cgETH Hashkey Cloud
+l2-standard-bridged-weth-base,WETH,L2 Standard Bridged WETH (Base)
+ondo-us-dollar-yield,USDY,Ondo US Dollar Yield
+aerodrome-finance,AERO,Aerodrome Finance
+usdx-money-usdx,USDX,Stables Labs USDX
+floki,FLOKI,FLOKI
+the-graph,GRT,The Graph
+tbtc,TBTC,tBTC
+arbitrum-bridged-weth-arbitrum-one,WETH,Arbitrum Bridged WETH (Arbitrum One)
+plasma,XPL,Plasma
+pyth-network,PYTH,Pyth Network
+tezos,XTZ,Tezos
+kaia,KAIA,Kaia
+fetch-ai,FET,Artificial Superintelligence Alliance
+sonic-3,S,Sonic
+usdai,USDAI,USDai
+stader-ethx,ETHX,Stader ETHx
+gteth,GTETH,GTETH
+beldex,BDX,Beldex
+newton-project,AB,AB
+iota,IOTA,IOTA
+saros-finance,SAROS,Saros
+usual-usd,USD0,Usual USD
+conflux-token,CFX,Conflux
+polygon-pos-bridged-dai-polygon-pos,DAI,Polygon PoS Bridged DAI (Polygon POS)
+ether-fi,ETHFI,Ether.fi
+theta-token,THETA,Theta Network
+bridged-usdc-polygon-pos-bridge,USDC.E,Polygon Bridged USDC (Polygon PoS)
+dash,DASH,Dash
+mantle-bridged-usdt-mantle,USDT,Mantle Bridged USDT (Mantle)
+coinbase-wrapped-staked-eth,CBETH,Coinbase Wrapped Staked ETH
+myx-finance,MYX,MYX Finance
+pendle,PENDLE,Pendle
+trust-wallet-token,TWT,Trust Wallet
+sweth,SWETH,Swell Ethereum
+bitcoin-avalanche-bridged-btc-b,BTC.B,Avalanche Bridged BTC (Avalanche)
+steakhouse-usdc-morpho-vault,STEAKUSDC,Steakhouse USDC Morpho Vault
+true-usd,TUSD,TrueUSD
+starknet,STRK,Starknet
+the-sandbox,SAND,The Sandbox
+usdd,USDD,USDD
+ethereum-name-service,ENS,Ethereum Name Service
+bittorrent,BTT,BitTorrent
+binance-peg-dogecoin,DOGE,Binance-Peg Dogecoin
+dogwifcoin,WIF,dogwifhat
+gala,GALA,GALA
+virtual-protocol,VIRTUAL,Virtuals Protocol
+ether-fi-staked-eth,EETH,ether.fi Staked ETH
+jasmycoin,JASMY,JasmyCoin
+mantle-restaked-eth,CMETH,Mantle Restaked ETH
+sun-token,SUN,Sun Token
+raydium,RAY,Raydium
+benqi-liquid-staked-avax,SAVAX,BENQI Liquid Staked AVAX
+havven,SNX,Synthetix
+arbitrum-bridged-wrapped-eeth,WEETH,Arbitrum Bridged Wrapped eETH (Arbitrum)
+swissborg,BORG,SwissBorg
+vaulta,A,Vaulta
+syrupusdt,SYRUPUSDT,syrupUSDT
+astherus-staked-bnb,ASBNB,Aster Staked BNB
+decentraland,MANA,Decentraland
+flow,FLOW,Flow
+gho,GHO,GHO
+bitcoin-cash-sv,BSV,Bitcoin SV
+hashnote-usyc,USYC,Circle USYC
+zora,ZORA,Zora
+polygon-pos-bridged-weth-polygon-pos,WETH,Polygon PoS Bridged WETH (Polygon POS)
+ai-companions,AIC,AI Companions
+apenft,NFT,AINFT
+usdb,USDB,USDB
+jito-governance-token,JTO,Jito
+eigenlayer,EIGEN,EigenCloud (prev. EigenLayer)
+aethir,ATH,Aethir
+vision-3,VSN,Vision
+frax-ether,FRXETH,Frax Ether
+eutbl,EUTBL,Spiko EU T-Bills Money Market Fund
+syrup,SYRUP,Maple Finance
+satoshi-stablecoin,SATUSD,Satoshi Stablecoin
+zero-gravity,0G,0G
+dexe,DEXE,DeXe
+savings-dai,SDAI,Savings Dai
+olympus,OHM,Olympus
+telcoin,TEL,Telcoin
+unit-bitcoin,UBTC,Unit Bitcoin
+ape-and-pepe,APEPE,Ape and Pepe
+compound-governance-token,COMP,Compound
+apecoin,APE,ApeCoin
+neo,NEO,NEO
+origintrail,TRAC,OriginTrail
+zebec-network,ZBCN,Zebec Network
+reservoir-srusd,SRUSD,Reservoir srUSD
+reserve-protocol-eth-plus,ETH+,ETHPlus
+helium,HNT,Helium
+walrus-2,WAL,Walrus
+wrapped-hype,WHYPE,Wrapped HYPE
+wormhole,W,Wormhole
+instadapp,FLUID,Fluid
+ethena-staked-ena,SENA,Ethena Staked ENA
+merlin-chain,MERL,Merlin Chain
+falcon-finance-ff,FF,Falcon Finance
+reserve-rights-token,RSR,Reserve Rights
+just,JST,JUST
+fartcoin,FARTCOIN,Fartcoin
+kinetiq-earn-vault,VKHYPE,Kinetiq Earn Vault
+loaded-lions,LION,Loaded Lions
+gnosis,GNO,Gnosis
+treehouse-eth,TETH,Treehouse ETH
+wrapped-avax,WAVAX,Wrapped AVAX
+chiliz,CHZ,Chiliz
+binance-peg-busd,BUSD,Binance-Peg BUSD
+wrapped-ether-mantle-bridge,WETH,Mantle Bridged WETH (Mantle)
+solv-protocol-solvbtc-bbn,XSOLVBTC,Solv Protocol Staked BTC
+chain-2,XCN,Onyxcoin
+drift-staked-sol,DSOL,Drift Staked SOL
+bybit-staked-sol,BBSOL,Bybit Staked SOL
+ark-3,ARK,ARK
+ribbita-by-virtuals,TIBBIR,Ribbita by Virtuals
+frax,FRAX,Legacy Frax Dollar
+wemix-token,WEMIX,WEMIX
+tribe-2,TRIBE,Tribe
+thorchain,RUNE,THORChain
+resolv-usr,USR,Resolv USR
