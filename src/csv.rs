@@ -20,6 +20,24 @@ pub fn read_trades_from_csv(path: &str) -> Result<Vec<Trade>, anyhow::Error> {
     // option 3 - with filtering out lines that can't be deserialized
     let trades: Vec<Trade> = reader.deserialize().filter_map(Result::ok).collect();
 
+    // option 4 - use validate() for input values - does the trade make sense
+    // let trades: Vec<Trade> = reader
+    //     .deserialize()
+    //     .filter_map(|res| match res {
+    //         Ok(trade) => match trade.validate() {
+    //             Ok(()) => Some(trade),
+    //             Err(e) => {
+    //                 eprintln!("Skipping invalid trade: {e}");
+    //                 None
+    //             }
+    //         },
+    //         Err(e) => {
+    //             eprintln!("Skipping malformed row: {e}");
+    //             None
+    //         }
+    //     })
+    //     .collect();
+
     Ok(trades)
 }
 

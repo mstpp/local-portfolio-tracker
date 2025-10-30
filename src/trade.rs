@@ -1,4 +1,5 @@
 // #![allow(dead_code)]
+use anyhow::Result;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use time::OffsetDateTime;
@@ -27,10 +28,37 @@ pub struct Trade {
     pub fee: Decimal,
 }
 
+// ⛔️ Not using validation fn, it needs to be called explicitly
+// impl Trade {
+//     pub fn validate(&self) -> Result<()> {
+//         if self.amount <= Decimal::ZERO {
+//             return Err(anyhow::anyhow!("value must be > 0"));
+//         }
+//         if self.price <= Decimal::ZERO {
+//             return Err(anyhow::anyhow!("price must be > 0"));
+//         }
+//         if self.fee < Decimal::ZERO {
+//             return Err(anyhow::anyhow!("negative fee not allowed"));
+//         }
+//         // TODO created_at should not be in the future
+//         // TODO created_at should not accept miliseconds
+//         Ok(())
+//     }
+// }
+
+// TODO
+// Custom deserializer with valute validations:
+// - amount, price > 0
+// - fee >= 0
+// - pair only accepted pairs, quote=USD (v1 should only support USD pairs, no currency conversions)
+
 /// Module to implment serde traits for inmported type OffsetDateTime
 mod ts_seconds {
     use serde::{self, Deserialize, Deserializer, Serializer};
     use time::OffsetDateTime;
+
+    // January 3, 2009 at 00:00:00 UTC (Bitcoin genesis block date)
+    const MIN_TIMESTAMP: i64 = 1231027200;
 
     pub fn serialize<S>(dt: &OffsetDateTime, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -44,6 +72,22 @@ mod ts_seconds {
         D: Deserializer<'de>,
     {
         let ts = i64::deserialize(deserializer)?;
+
+        // Validate: check minimum date (January 3, 2009)
+        if ts < self::MIN_TIMESTAMP {
+            return Err(serde::de::Error::custom(format!(
+                "timestamp {} is before minimum allowed date (2009-01-03)",
+                ts
+            )));
+        }
+
+        // Validate: timestamp can't be in the future
+        let now_epoch = OffsetDateTime::now_utc().unix_timestamp();
+        if ts >= now_epoch {
+            return Err(serde::de::Error::custom("timestamp is in the future"));
+        }
+
+        // miliseconds are implicitly rejected
         OffsetDateTime::from_unix_timestamp(ts).map_err(serde::de::Error::custom)
     }
 }
@@ -99,6 +143,10 @@ mod tests {
     use serde_json::json;
     use time::macros::datetime;
 
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+    // ts_seconds module test
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     pub struct TestTrade {
         #[serde(with = "ts_seconds")]
@@ -113,6 +161,29 @@ mod tests {
         assert_eq!(tt.created_at, dt);
     }
 
+    #[test]
+    fn timestamp_deser_to_old() {
+        let json = r#"{"created_at": 111222333}"#;
+        match serde_json::from_str::<TestTrade>(json) {
+            Ok(_) => panic!("expected to fail"),
+            Err(e) => assert!(
+                e.to_string()
+                    .contains("timestamp 111222333 is before minimum allowed date (2009-01-03)")
+            ),
+        }
+    }
+
+    #[test]
+    fn timestamp_in_future() {
+        let json = r#"{"created_at": 1861826683}"#;
+        let err = serde_json::from_str::<TestTrade>(json).unwrap_err();
+        // ensure it's a data error (not IO or syntax)
+        assert!(err.is_data());
+        assert!(
+            err.to_string().contains("timestamp is in the future"),
+            "got: {err}"
+        );
+    }
     #[test]
     fn timestamp_ser() {
         let tt = TestTrade {
@@ -156,4 +227,6 @@ mod tests {
             ],
         );
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - -
 }
