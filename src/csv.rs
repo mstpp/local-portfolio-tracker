@@ -8,10 +8,12 @@ pub fn read_trades_from_csv(path: &str) -> Result<Vec<Trade>, anyhow::Error> {
     let file = File::open(path)?;
     let mut reader = csv::Reader::from_reader(file);
 
+    // Learning 📖
     // options 1
     // let trades_result: Result<Vec<Trade>, csv::Error> = reader.deserialize().collect();
     // trades_result
 
+    // Learning 📖
     // option 2
     // let trades: Vec<Trade> = reader
     //     .deserialize() // returns iterator of Result<Trade, csv::Error>
@@ -20,6 +22,7 @@ pub fn read_trades_from_csv(path: &str) -> Result<Vec<Trade>, anyhow::Error> {
     // option 3 - with filtering out lines that can't be deserialized
     let trades: Vec<Trade> = reader.deserialize().filter_map(Result::ok).collect();
 
+    // Learning 📖
     // option 4 - use validate() for input values - does the trade make sense
     // let trades: Vec<Trade> = reader
     //     .deserialize()

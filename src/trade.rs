@@ -23,12 +23,17 @@ pub struct Trade {
     pub created_at: OffsetDateTime,
     pub pair: TradingPair,
     pub side: Side,
+    #[serde(deserialize_with = "positive_decimal")]
     pub amount: Decimal,
+    #[serde(deserialize_with = "positive_decimal")]
     pub price: Decimal,
+    #[serde(deserialize_with = "positive_decimal")] // TODO accept fee=0.0
     pub fee: Decimal,
 }
 
+// Learning 📖
 // ⛔️ Not using validation fn, it needs to be called explicitly
+// better approach: validate as part of deserialization
 // impl Trade {
 //     pub fn validate(&self) -> Result<()> {
 //         if self.amount <= Decimal::ZERO {
@@ -40,17 +45,21 @@ pub struct Trade {
 //         if self.fee < Decimal::ZERO {
 //             return Err(anyhow::anyhow!("negative fee not allowed"));
 //         }
-//         // TODO created_at should not be in the future
-//         // TODO created_at should not accept miliseconds
 //         Ok(())
 //     }
 // }
 
-// TODO
-// Custom deserializer with valute validations:
-// - amount, price > 0
-// - fee >= 0
-// - pair only accepted pairs, quote=USD (v1 should only support USD pairs, no currency conversions)
+fn positive_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let num = f64::deserialize(deserializer)?;
+    let d = Decimal::try_from(num).map_err(serde::de::Error::custom)?;
+    if d <= Decimal::ZERO {
+        return Err(serde::de::Error::custom("value must be positive number"));
+    }
+    Ok(d)
+}
 
 /// Module to implment serde traits for inmported type OffsetDateTime
 mod ts_seconds {
@@ -99,6 +108,8 @@ pub enum Side {
     Sell,
 }
 
+// Learning 📖
+// Example of manually implementing ser/deser traits
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TradingPair {
     pub base: String,
@@ -111,7 +122,7 @@ impl Serialize for TradingPair {
         S: Serializer,
     {
         let s = format!("{}/{}", self.base, self.quote);
-        serializer.serialize_str(&s)
+        serializer.serialize_str(&s.to_uppercase())
     }
 }
 
@@ -121,13 +132,20 @@ impl<'de> Deserialize<'de> for TradingPair {
         D: Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        let parts: Vec<&str> = s.split('/').collect();
+        let parts: Vec<String> = s.split('/').map(|t| t.to_uppercase()).collect();
 
         if parts.len() != 2 {
             return Err(serde::de::Error::custom(format!(
                 "expected format 'BASE/QUOTE', got '{}'",
                 s
             )));
+        }
+
+        // only accept USD as quote for now
+        if parts[1] != "USD" {
+            return Err(serde::de::Error::custom(
+                "accepting only USD for quote currency",
+            ));
         }
 
         Ok(TradingPair {
@@ -229,4 +247,154 @@ mod tests {
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - -
+
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+    // positive_decimal deserializer test
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct ValTest {
+        #[serde(deserialize_with = "positive_decimal")]
+        pub amount: Decimal,
+    }
+
+    #[test]
+    fn positive_val_deser() {
+        let json = r#"{"amount": 0.0001}"#;
+        let d: ValTest = serde_json::from_str(&json).unwrap();
+        println!("{:?}", &d);
+        // TODO
+    }
+
+    // TODO boundary tests
+    // TOOD negative value
+
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+    // TradingPair ser/deser test
+    // - - - - - - - - - - - - - - - - - - - - - - - -
+
+    /// Verifies that the serialized output follows the "BASE/QUOTE" format with a single `/` separator.
+    #[test]
+    fn test_serialize_uses_slash_separator() {
+        let d = serde_json::from_str::<TestPair>(r#"{"pair":"ETH/USD"}"#).unwrap();
+        assert_eq!(
+            TestPair {
+                pair: TradingPair {
+                    base: "ETH".to_string(),
+                    quote: "USD".to_string()
+                }
+            },
+            d
+        );
+    }
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    pub struct TestPair {
+        pub pair: TradingPair,
+    }
+
+    /// Verifies that any quote currency other than "USD" (e.g., "BTC/EUR") is rejected.
+    #[test]
+    fn test_deserialize_rejects_invalid_quote_currency() {
+        let json_str = r#"{"pair":"BTC/USDT"}"#;
+        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("accepting only USD for quote currency")
+        );
+    }
+
+    /// Checks that input without `/` (e.g., "BTCUSD") returns a format error.
+    #[test]
+    fn test_deserialize_rejects_missing_separator() {
+        let json_str = r#"{"pair":"BTCUSDT"}"#;
+        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("expected format 'BASE/QUOTE', got 'BTCUSDT'")
+        );
+    }
+
+    #[test]
+    fn invalid_trading_pair_format_doubleslash() {
+        let json_str = r#"{"pair":"BTC/ETH/USD"}"#;
+        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
+        println!("{:?}", &err);
+        assert!(
+            err.to_string()
+                .contains("expected format 'BASE/QUOTE', got 'BTC/ETH/USD'")
+        );
+    }
+
+    /// Ensures that both `base` and `quote` are serialized in uppercase form regardless of input casing.
+    #[test]
+    fn test_serialize_converts_to_uppercase() {
+        let d = serde_json::from_str::<TestPair>(r#"{"pair":"btc/UsD"}"#).unwrap();
+        assert_eq!(
+            TestPair {
+                pair: TradingPair {
+                    base: "BTC".to_string(),
+                    quote: "USD".to_string()
+                }
+            },
+            d
+        );
+    }
+
+    // 🤖 generated:
+
+    /// Checks that non-alphabetic symbols in `base` (like "eth2") are preserved during serialization.
+    #[test]
+    fn test_serialize_preserves_alphanumeric_symbols() {
+        // TODO
+    }
+
+    /// Checks that an empty input string fails deserialization with a clear error.
+    #[test]
+    fn test_deserialize_rejects_empty_string() {
+        // TODO
+    }
+
+    /// Validates that "BTC/" produces an error since the quote part is missing.
+    #[test]
+    fn test_deserialize_rejects_only_base_no_quote() {
+        // TODO
+    }
+
+    /// Validates that "/USD" produces an error since the base part is missing.
+    #[test]
+    fn test_deserialize_rejects_only_quote_no_base() {
+        // TODO
+    }
+
+    /// Ensures that serializing and then deserializing a valid TradingPair returns the same normalized struct.
+    #[test]
+    fn test_serialize_then_deserialize_roundtrip() {
+        // TODO
+    }
+
+    // roundtrip
+    /// Ensures that deserializing a valid string and then serializing it again produces the same uppercase "BASE/QUOTE" string.
+    #[test]
+    fn test_deserialize_then_serialize_roundtrip() {
+        // TODO
+    }
+
+    /// Ensures inputs with spaces like "  btc / usd " are handled appropriately (trimmed or rejected).
+    #[test]
+    fn test_deserialize_with_whitespace() {
+        // TODO
+    }
+
+    /// Checks that non-ASCII input like "btç/usd" either serializes safely or fails as expected.
+    #[test]
+    fn test_serialize_with_non_ascii_characters() {
+        // TODO
+    }
+
+    /// Verifies that deserializing non-ASCII or invalid Unicode behaves correctly (accepts or rejects as per spec).
+    #[test]
+    fn test_deserialize_with_non_ascii_characters() {
+        // TODO
+    }
 }
