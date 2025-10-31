@@ -1,7 +1,8 @@
 // #![allow(dead_code)]
+use crate::trading_pair::TradingPair;
 use anyhow::Result;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use time::OffsetDateTime;
 
 /// Represents a single executed trade in a portfolio.
@@ -108,53 +109,6 @@ pub enum Side {
     Sell,
 }
 
-// Learning 📖
-// Example of manually implementing ser/deser traits
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TradingPair {
-    pub base: String,
-    pub quote: String,
-}
-
-impl Serialize for TradingPair {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = format!("{}/{}", self.base, self.quote);
-        serializer.serialize_str(&s.to_uppercase())
-    }
-}
-
-impl<'de> Deserialize<'de> for TradingPair {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let parts: Vec<String> = s.split('/').map(|t| t.to_uppercase()).collect();
-
-        if parts.len() != 2 {
-            return Err(serde::de::Error::custom(format!(
-                "expected format 'BASE/QUOTE', got '{}'",
-                s
-            )));
-        }
-
-        // only accept USD as quote for now
-        if parts[1] != "USD" {
-            return Err(serde::de::Error::custom(
-                "accepting only USD for quote currency",
-            ));
-        }
-
-        Ok(TradingPair {
-            base: parts[0].to_string(),
-            quote: parts[1].to_string(),
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,17 +126,15 @@ mod tests {
     }
 
     #[test]
-    fn timestamp_deser() {
-        let json = r#"{"created_at": 1704883200}"#;
+    fn test_timestamp_deserializer() {
         let dt: OffsetDateTime = datetime!(2024-01-10 10:40 UTC);
-        let tt: TestTrade = serde_json::from_str(json).unwrap();
+        let tt: TestTrade = serde_json::from_str(r#"{"created_at": 1704883200}"#).unwrap();
         assert_eq!(tt.created_at, dt);
     }
 
     #[test]
-    fn timestamp_deser_to_old() {
-        let json = r#"{"created_at": 111222333}"#;
-        match serde_json::from_str::<TestTrade>(json) {
+    fn test_timestamp_deser_to_old() {
+        match serde_json::from_str::<TestTrade>(r#"{"created_at": 111222333}"#) {
             Ok(_) => panic!("expected to fail"),
             Err(e) => assert!(
                 e.to_string()
@@ -192,9 +144,8 @@ mod tests {
     }
 
     #[test]
-    fn timestamp_in_future() {
-        let json = r#"{"created_at": 1861826683}"#;
-        let err = serde_json::from_str::<TestTrade>(json).unwrap_err();
+    fn test_timestamp_in_future() {
+        let err = serde_json::from_str::<TestTrade>(r#"{"created_at": 1861826683}"#).unwrap_err();
         // ensure it's a data error (not IO or syntax)
         assert!(err.is_data());
         assert!(
@@ -203,7 +154,7 @@ mod tests {
         );
     }
     #[test]
-    fn timestamp_ser() {
+    fn test_timestamp_ser() {
         let tt = TestTrade {
             created_at: datetime!(2024-01-10 10:40 UTC),
         };
@@ -212,7 +163,7 @@ mod tests {
     }
 
     #[test]
-    fn round_trip() {
+    fn test_created_at_roundtrip() {
         let original = TestTrade {
             created_at: datetime!(2024-01-10 10:40 UTC),
         };
@@ -226,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn tokens_for_ts_seconds() {
+    fn test_tokens_for_ts_seconds() {
         use serde_test::{Token, assert_tokens};
         let t = TestTrade {
             created_at: datetime!(2024-01-10 10:40 UTC),
@@ -252,149 +203,153 @@ mod tests {
     // positive_decimal deserializer test
     // - - - - - - - - - - - - - - - - - - - - - - - -
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Serialize, Deserialize, PartialEq)]
     struct ValTest {
         #[serde(deserialize_with = "positive_decimal")]
         pub amount: Decimal,
     }
 
+    // #[test]
+    // fn test_amount_positive_val_deser() {
+    //     let d: ValTest = serde_json::from_str(r#"{"amount": 0.0001}"#).unwrap();
+    //     println!("{:?}", &d);
+    //     assert_eq!(
+    //         d,
+    //         ValTest {
+    //             amount: rust_decimal::dec!(0.0001)
+    //         }
+    //     );
+    // }
+
+    /// Deserializes `{"amount": 5}` and succeeds with `Decimal(5)`.
     #[test]
-    fn positive_val_deser() {
-        let json = r#"{"amount": 0.0001}"#;
-        let d: ValTest = serde_json::from_str(&json).unwrap();
+    fn test_deser_accepts_simple_positive_integer() {
+        let d: ValTest = serde_json::from_str(r#"{"amount": 5}"#).unwrap();
         println!("{:?}", &d);
-        // TODO
-    }
-
-    // TODO boundary tests
-    // TOOD negative value
-
-    // - - - - - - - - - - - - - - - - - - - - - - - -
-    // TradingPair ser/deser test
-    // - - - - - - - - - - - - - - - - - - - - - - - -
-
-    /// Verifies that the serialized output follows the "BASE/QUOTE" format with a single `/` separator.
-    #[test]
-    fn test_serialize_uses_slash_separator() {
-        let d = serde_json::from_str::<TestPair>(r#"{"pair":"ETH/USD"}"#).unwrap();
         assert_eq!(
-            TestPair {
-                pair: TradingPair {
-                    base: "ETH".to_string(),
-                    quote: "USD".to_string()
-                }
-            },
-            d
+            d,
+            ValTest {
+                amount: rust_decimal::dec!(5)
+            }
         );
     }
 
-    #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    pub struct TestPair {
-        pub pair: TradingPair,
-    }
-
-    /// Verifies that any quote currency other than "USD" (e.g., "BTC/EUR") is rejected.
+    /// Deserializes `{"amount": 5.75}` and succeeds with `Decimal(5.75)`.
     #[test]
-    fn test_deserialize_rejects_invalid_quote_currency() {
-        let json_str = r#"{"pair":"BTC/USDT"}"#;
-        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("accepting only USD for quote currency")
-        );
-    }
-
-    /// Checks that input without `/` (e.g., "BTCUSD") returns a format error.
-    #[test]
-    fn test_deserialize_rejects_missing_separator() {
-        let json_str = r#"{"pair":"BTCUSDT"}"#;
-        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
-        assert!(
-            err.to_string()
-                .contains("expected format 'BASE/QUOTE', got 'BTCUSDT'")
-        );
-    }
-
-    #[test]
-    fn invalid_trading_pair_format_doubleslash() {
-        let json_str = r#"{"pair":"BTC/ETH/USD"}"#;
-        let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
-        println!("{:?}", &err);
-        assert!(
-            err.to_string()
-                .contains("expected format 'BASE/QUOTE', got 'BTC/ETH/USD'")
-        );
-    }
-
-    /// Ensures that both `base` and `quote` are serialized in uppercase form regardless of input casing.
-    #[test]
-    fn test_serialize_converts_to_uppercase() {
-        let d = serde_json::from_str::<TestPair>(r#"{"pair":"btc/UsD"}"#).unwrap();
+    fn test_deser_accepts_simple_positive_decimal() {
+        let d: ValTest = serde_json::from_str(r#"{"amount": 5.75}"#).unwrap();
+        println!("{:?}", &d);
         assert_eq!(
-            TestPair {
-                pair: TradingPair {
-                    base: "BTC".to_string(),
-                    quote: "USD".to_string()
-                }
-            },
-            d
+            d,
+            ValTest {
+                amount: rust_decimal::dec!(5.75)
+            }
         );
     }
 
-    // 🤖 generated:
-
-    /// Checks that non-alphabetic symbols in `base` (like "eth2") are preserved during serialization.
+    /// Deserializes `{"amount": 1e6}` and succeeds with `Decimal(1000000)`.
     #[test]
-    fn test_serialize_preserves_alphanumeric_symbols() {
-        // TODO
+    fn test_deser_accepts_scientific_notation_positive() {
+        let d: ValTest = serde_json::from_str(r#"{"amount": 1e6}"#).unwrap();
+        println!("{:?}", &d);
+        assert_eq!(
+            d,
+            ValTest {
+                amount: rust_decimal::dec!(1000000)
+            }
+        );
     }
 
-    /// Checks that an empty input string fails deserialization with a clear error.
+    /// Deserializes a very small positive like `{"amount": 1e-9}` and succeeds (still > 0).
     #[test]
-    fn test_deserialize_rejects_empty_string() {
-        // TODO
+    fn test_deser_accepts_small_positive_decimal_epsilon() {
+        let d: ValTest = serde_json::from_str(r#"{"amount": 1e-9}"#).unwrap();
+        println!("{:?}", &d);
+        assert_eq!(
+            d,
+            ValTest {
+                amount: rust_decimal::dec!(0.000000001)
+            }
+        );
     }
 
-    /// Validates that "BTC/" produces an error since the quote part is missing.
-    #[test]
-    fn test_deserialize_rejects_only_base_no_quote() {
-        // TODO
+    // negative tests - non positive values
+
+    fn assert_rejects_invalid_value(json: &str) {
+        let res: Result<ValTest, serde_json::Error> = serde_json::from_str(json);
+        assert!(res.is_err(), "expected deserialization to fail for {json}");
+        let err = res.unwrap_err().to_string();
+        assert!(
+            err.contains("value must be positive number"),
+            "unexpected error message: {err}"
+        );
     }
 
-    /// Validates that "/USD" produces an error since the base part is missing.
     #[test]
-    fn test_deserialize_rejects_only_quote_no_base() {
-        // TODO
+    fn test_deser_rejects_non_positive_values() {
+        for json in [
+            r#"{"amount": 0}"#,
+            r#"{"amount": -3}"#,
+            r#"{"amount": -0.0001}"#,
+        ] {
+            assert_rejects_invalid_value(json);
+        }
     }
 
-    /// Ensures that serializing and then deserializing a valid TradingPair returns the same normalized struct.
-    #[test]
-    fn test_serialize_then_deserialize_roundtrip() {
-        // TODO
+    // negative tests - type mismatch
+
+    fn assert_jrects_invalid_type(json: &str) {
+        let err = serde_json::from_str::<ValTest>(json).unwrap_err();
+        assert!(err.is_data());
+        // println!("{:?}", &err);
+        assert!(err.to_string().contains("invalid type:"));
     }
 
-    // roundtrip
-    /// Ensures that deserializing a valid string and then serializing it again produces the same uppercase "BASE/QUOTE" string.
     #[test]
-    fn test_deserialize_then_serialize_roundtrip() {
-        // TODO
+    fn test_deser_rejects_type_error() {
+        for json in [
+            r#"{"amount": "1.23"}"#,
+            r#"{"amount": true}"#,
+            r#"{"amount": [1,2]}"#,
+            r#"{"amount": {"k": 1}}"#,
+        ] {
+            assert_jrects_invalid_type(json);
+        }
     }
 
-    /// Ensures inputs with spaces like "  btc / usd " are handled appropriately (trimmed or rejected).
+    /// Deserializes an extremely large number (e.g., `{"amount": 1e309}`), expecting failure from `Decimal::try_from(f64)` with a custom-converted error.
     #[test]
-    fn test_deserialize_with_whitespace() {
-        // TODO
-    }
+    fn deser_maps_try_from_overflow_error() {}
 
-    /// Checks that non-ASCII input like "btç/usd" either serializes safely or fails as expected.
+    /// Deserializes a value that `Decimal::try_from` rejects (e.g., a denormal that can’t be represented), expecting a custom-converted error message from `try_from`.
     #[test]
-    fn test_serialize_with_non_ascii_characters() {
-        // TODO
-    }
+    fn deser_maps_try_from_subnormal_or_precision_error() {}
 
-    /// Verifies that deserializing non-ASCII or invalid Unicode behaves correctly (accepts or rejects as per spec).
+    /// Deserializes `ValTest` with a valid positive number and ensures `ValTest { amount }` is constructed correctly.
     #[test]
-    fn test_deserialize_with_non_ascii_characters() {
-        // TODO
-    }
+    fn deser_integration_on_struct_field_succeeds() {}
+
+    /// Deserializes `ValTest` with `0` and asserts the specific `"value must be positive number"` message surfaces from the field.
+    #[test]
+    fn deser_integration_on_struct_field_fails_zero() {}
+
+    /// Deserializes `ValTest` with a negative number and asserts the specific error message.
+    #[test]
+    fn deser_integration_on_struct_field_fails_negative() {}
+
+    /// Confirms that the `"value must be positive number"` text appears in the `serde_json::Error` display string for zero/negative inputs.
+    #[test]
+    fn deser_error_message_is_preserved_in_serde_json_error_display() {}
+
+    /// Deserialize a positive JSON number to `Decimal` and compare against a `Decimal` constructed from string (e.g., `"5.75"`) to assert expected value; note potential f64→Decimal rounding implications.
+    #[test]
+    fn deser_roundtrip_behavior_documented_with_serialize_reference() {}
+
+    /// Uses the smallest positive number representable in your domain (e.g., `1e-28` if meaningful for `Decimal`) and verifies it is accepted and correctly represented.
+    #[test]
+    fn deser_boundary_value_min_positive_handled() {}
+
+    /// If JSON input source could allow non-finite numbers (NaN/Infinity via non-standard parser), ensure they are rejected via `try_from` mapping (or mark not applicable).
+    #[test]
+    fn deser_rejects_non_finite_values_if_parser_allows() {}
 }

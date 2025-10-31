@@ -5,6 +5,7 @@ mod portfolio_file;
 mod quote;
 mod report;
 mod trade;
+mod trading_pair;
 
 /// CSV Portfolio Tracker
 ///
