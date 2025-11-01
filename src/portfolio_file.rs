@@ -1,7 +1,6 @@
-use std::fs;
-
+/// List all files in ./portfolios dir
 pub fn list() {
-    let paths = fs::read_dir("./portfolios").unwrap();
+    let paths = std::fs::read_dir("./portfolios").unwrap();
     for path in paths {
         println!("{}", path.unwrap().file_name().to_string_lossy());
     }
@@ -9,9 +8,7 @@ pub fn list() {
 
 pub fn new(name: &str) {
     let path = format!("./portfolios/{}", name);
-    // TODO check if path exists and what to do in that case?
-    // should we accpet --force argument to overwrite?
-    // currently: if name exists, it will overwrite the existing file
-    let _ = fs::File::create(path).unwrap();
-    // TODO list full dir after completed succ?
+    // v1: if name exists, it will overwrite the existing file
+    let _ = std::fs::File::create(path).unwrap();
+    // v2: TODO if exists, propt for action or check for --force cli param flat
 }

@@ -9,8 +9,6 @@ use std::collections::HashMap;
 type Position = (Decimal, Decimal, Decimal); // (amount, avg_price, total_fees)
 type Book = HashMap<String, Position>;
 
-// TODO rn assuming only USD pairs, add support for any quote ticker in pairs
-
 fn calc_holdings(book: &mut Book, tx: &Trade) {
     let pos = book
         .entry(tx.pair.base.to_string())
@@ -49,7 +47,7 @@ pub fn show_holdings(name: &str) {
     let tickers: Vec<String> = holdings.clone().into_keys().collect();
 
     // based on ids, get current quotes
-    let quotes_hm = crate::quote::get_q(tickers).unwrap();
+    let quotes_hm = crate::quote::get_quotes(tickers).unwrap();
     for (id, quote) in quotes_hm.clone() {
         println!("{:6}={:10} USD", &id, &quote);
     }

@@ -352,4 +352,31 @@ mod tests {
     /// If JSON input source could allow non-finite numbers (NaN/Infinity via non-standard parser), ensure they are rejected via `try_from` mapping (or mark not applicable).
     #[test]
     fn deser_rejects_non_finite_values_if_parser_allows() {}
+
+    // csv deserializer
+
+    fn from_csv_str<T: for<'de> serde::Deserialize<'de>>(s: &str) -> Result<T, csv::Error> {
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(std::io::Cursor::new(s));
+        reader.deserialize().next().unwrap()
+    }
+
+    fn assert_rejects_invalid_csv(csv_data: &str) {
+        let result: Result<ValTest, csv::Error> = from_csv_str(&csv_data);
+        assert!(
+            result.is_err(),
+            "expected CSV deserialization to fail for:\n{csv_data}"
+        );
+        let err = result.unwrap_err().to_string();
+        assert!(
+            err.contains("value must be positive number"),
+            "unexpected error message: {err}"
+        );
+    }
+
+    #[test]
+    fn test_csv_deser_invalid_value_negative() {
+        assert_rejects_invalid_csv("amount\n-1\n");
+    }
 }
