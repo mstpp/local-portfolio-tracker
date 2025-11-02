@@ -1,12 +1,11 @@
 // #![allow(dead_code)]
 use crate::trade::Trade;
 use anyhow::Result;
-use std::fs::File;
 
 //  v1: anyhow::Error instead of Box<dyn Error>
 //  v2: anyhow::Result
 pub fn read_trades_from_csv(path: &str) -> Result<Vec<Trade>> {
-    let file = File::open(path)?;
+    let file = std::fs::File::open(path)?;
     let mut reader = csv::Reader::from_reader(file);
 
     // Learning 📖

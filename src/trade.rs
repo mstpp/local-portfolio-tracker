@@ -102,11 +102,27 @@ mod ts_seconds {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Side {
     Buy,
     Sell,
+}
+
+/// Accepting any case, but serialize to uppercase
+impl<'de> Deserialize<'de> for Side {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        // Deserialize as a plain string first
+        let s = String::deserialize(deserializer)?;
+        match s.trim().to_ascii_uppercase().as_str() {
+            "BUY" => Ok(Side::Buy),
+            "SELL" => Ok(Side::Sell),
+            other => Err(serde::de::Error::unknown_variant(other, &["BUY", "SELL"])),
+        }
+    }
 }
 
 #[cfg(test)]

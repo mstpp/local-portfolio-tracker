@@ -1,5 +1,6 @@
 // #![allow(dead_code)]
 use clap::{Parser, Subcommand};
+mod add_tx;
 mod csv;
 mod portfolio_file;
 mod quote;
@@ -27,6 +28,22 @@ enum Cmd {
     Show { name: String },
     /// Report portfolio PnL total and per asset
     Report { name: String },
+    /// Add transaction to portfolio
+    #[command(subcommand)]
+    AddTx(AddTxCmd),
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum AddTxCmd {
+    /// Add a trade transaction (BUY or SELL)
+    Trade {
+        portfolio: String,
+        symbol: String,
+        side: String, // BUY or SELL
+        qty: f64,
+        price: f64,
+        fee: f64,
+    },
 }
 
 fn main() {
@@ -45,7 +62,15 @@ fn main() {
         Cmd::Report { name } => {
             report::show_holdings(name);
         }
+        Cmd::AddTx(add_tx_cmd) => match add_tx_cmd {
+            AddTxCmd::Trade {
+                portfolio,
+                symbol,
+                side,
+                qty,
+                price,
+                fee,
+            } => add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee),
+        },
     }
-
-    // println!("DEBUG: {:?}", cli);
 }
