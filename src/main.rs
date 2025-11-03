@@ -57,10 +57,10 @@ fn main() {
             let _ = portfolio_file::new(name.as_str());
         }
         Cmd::Show { name } => {
-            csv::show_trades(name);
+            let _ = csv::show_trades(name);
         }
         Cmd::Report { name } => {
-            report::show_holdings(name);
+            let _ = report::show_holdings(name);
         }
         Cmd::AddTx(add_tx_cmd) => match add_tx_cmd {
             AddTxCmd::Trade {
@@ -70,7 +70,9 @@ fn main() {
                 qty,
                 price,
                 fee,
-            } => add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee),
+            } => {
+                let _ = add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee);
+            }
         },
     }
 }

@@ -1,6 +1,8 @@
 // #![allow(dead_code)]
 use crate::csv::read_trades_from_csv;
+use crate::portfolio_file::path_str_from_name;
 use crate::trade::{Side, Trade};
+use anyhow::Result;
 use rust_decimal::Decimal;
 use rust_decimal::dec;
 use rust_decimal::prelude::FromPrimitive;
@@ -34,14 +36,13 @@ fn calc_holdings(book: &mut Book, tx: &Trade) {
     *pos = (new_amount, new_avg, new_fee);
 }
 
-pub fn show_holdings(name: &str) {
+pub fn show_holdings(name: &str) -> Result<()> {
     let mut holdings: Book = HashMap::new();
-    let path = format!("./portfolios/{}", name);
+    let path = path_str_from_name(name)?;
     let trades: Vec<Trade> = read_trades_from_csv(&path).unwrap();
     for tx in trades {
         calc_holdings(&mut holdings, &tx);
     }
-    // println!("{:#?}", holdings);
 
     // get all holding tickers
     let tickers: Vec<String> = holdings.clone().into_keys().collect();
@@ -56,7 +57,6 @@ pub fn show_holdings(name: &str) {
     for (ticker, price) in quotes_hm {
         let (holding, avg_price, _) = holdings.get(&ticker.clone()).unwrap();
         let dec_price = Decimal::from_f64(price).unwrap();
-        // println!("DEBUG {} {}", ticker, dec_price);
         let val = holding.clone() * dec_price;
         total_pnl += val;
         let pnl = val - (holding * avg_price);
@@ -66,6 +66,9 @@ pub fn show_holdings(name: &str) {
             ticker, holding, avg_price, val, pnl, pnl_perc
         );
     }
+
     println!();
     println!("Total PnL USD: {total_pnl}");
+
+    Ok(())
 }

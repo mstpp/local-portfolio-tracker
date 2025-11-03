@@ -1,9 +1,18 @@
 use crate::{
+    portfolio_file::path_from_name,
     trade::{Side, Trade},
     trading_pair::TradingPair,
 };
+use anyhow::Result;
 
-pub fn add_tx(portfolio: &str, symbol: &str, side: &str, qty: f64, price: f64, fee: f64) {
+pub fn add_tx(
+    portfolio: &str,
+    symbol: &str,
+    side: &str,
+    qty: f64,
+    price: f64,
+    fee: f64,
+) -> Result<()> {
     let tx = Trade {
         created_at: time::OffsetDateTime::now_utc(),
         pair: serde_plain::from_str::<TradingPair>(&symbol).unwrap(),
@@ -13,8 +22,7 @@ pub fn add_tx(portfolio: &str, symbol: &str, side: &str, qty: f64, price: f64, f
         fee: rust_decimal::Decimal::from_f64_retain(fee).unwrap(),
     };
 
-    // let path = format!("./portfolios/{}", portfolio);
-    let path = std::path::Path::new("./portfolios").join(portfolio);
+    let path = path_from_name(portfolio)?;
 
     let csv_file = std::fs::OpenOptions::new()
         .append(true)
@@ -29,4 +37,5 @@ pub fn add_tx(portfolio: &str, symbol: &str, side: &str, qty: f64, price: f64, f
         "✅ Added transaction to portfolio csv file: {:?}\n{:?}",
         path, tx
     );
+    Ok(())
 }

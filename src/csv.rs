@@ -1,4 +1,5 @@
 // #![allow(dead_code)]
+use crate::portfolio_file::path_str_from_name;
 use crate::trade::Trade;
 use anyhow::Result;
 
@@ -45,10 +46,11 @@ pub fn read_trades_from_csv(path: &str) -> Result<Vec<Trade>> {
     Ok(trades)
 }
 
-pub fn show_trades(name: &str) {
-    let path = format!("./portfolios/{}", name);
-    let trades = read_trades_from_csv(&path).unwrap();
+pub fn show_trades(name: &str) -> Result<()> {
+    let path = path_str_from_name(name)?;
+    let trades = read_trades_from_csv(&path)?;
     for trade in trades {
         println!("{:?}", &trade);
     }
+    Ok(())
 }

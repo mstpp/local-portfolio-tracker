@@ -1,7 +1,20 @@
 use anyhow::{Context, Result};
-use std::fs;
+use std::{fs, path::PathBuf};
 
-const PORTFOLIO_PATH: &str = "./portfolios";
+pub const PORTFOLIO_PATH: &str = "./portfolios";
+
+pub fn path_from_name(name: &str) -> Result<PathBuf> {
+    let path_buf = std::path::PathBuf::from(PORTFOLIO_PATH)
+        .join(name)
+        .with_extension("csv");
+    Ok(path_buf)
+}
+
+pub fn path_str_from_name(name: &str) -> Result<String> {
+    let path_buf = path_from_name(name)?;
+    let path_str = path_buf.to_str().with_context(|| "Couldn't get path str")?;
+    Ok(path_str.to_string())
+}
 
 fn list() -> Result<Vec<String>> {
     let entries = fs::read_dir(PORTFOLIO_PATH)
@@ -82,9 +95,7 @@ pub fn print_list() -> Result<()> {
 pub fn new(name: &str) -> Result<()> {
     // v1 - use PathBuf instead
     // let path = format!("./portfolios/{}", name);
-    let new_file_path = std::path::PathBuf::from(PORTFOLIO_PATH)
-        .join(name)
-        .with_extension("csv");
+    let new_file_path = path_from_name(name)?;
     // v1: if name exists, it will overwrite the existing file
     std::fs::File::create(new_file_path.clone()).with_context(|| "Couldn't create new csv file")?;
     println!(
