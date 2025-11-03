@@ -51,10 +51,10 @@ fn main() {
 
     match &cli.commands {
         Cmd::List => {
-            portfolio_file::list();
+            let _ = portfolio_file::print_list();
         }
         Cmd::New { name } => {
-            portfolio_file::new(name.as_str());
+            let _ = portfolio_file::new(name.as_str());
         }
         Cmd::Show { name } => {
             csv::show_trades(name);
