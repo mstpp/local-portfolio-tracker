@@ -1,4 +1,5 @@
 // #![allow(dead_code)]
+use anyhow::Result;
 use clap::{Parser, Subcommand};
 mod add_tx;
 mod csv;
@@ -20,16 +21,29 @@ struct Cli {
 
 #[derive(Debug, Clone, Subcommand)]
 enum Cmd {
-    /// List all portfolios located at ./portfolios
+    /// List all portfolios
+    #[command(visible_aliases = ["l", "ls"])]
     List,
-    /// Create new portfolio at ./portfolios
-    New { name: String },
-    /// Show all transactino from portfolio
-    Show { name: String },
-    /// Report portfolio PnL total and per asset
-    Report { name: String },
+    /// Create new portfolio
+    #[command(alias = "n")]
+    New {
+        #[arg(short, long)]
+        name: String,
+    },
+    /// Show all transactions from portfolio
+    #[command(alias = "s")]
+    Show {
+        #[arg(short, long)]
+        name: String,
+    },
+    /// Report portfolio PnL
+    #[command(alias = "r")]
+    Report {
+        #[arg(short, long)]
+        name: String,
+    },
     /// Add transaction to portfolio
-    #[command(subcommand)]
+    #[command(subcommand, alias = "a")]
     AddTx(AddTxCmd),
 }
 
@@ -46,21 +60,21 @@ enum AddTxCmd {
     },
 }
 
-fn main() {
+fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.commands {
         Cmd::List => {
-            let _ = portfolio_file::print_list();
+            portfolio_file::print_list()?;
         }
         Cmd::New { name } => {
-            let _ = portfolio_file::new(name.as_str());
+            portfolio_file::new(name.as_str())?;
         }
         Cmd::Show { name } => {
-            let _ = csv::show_trades(name);
+            csv::show_trades(name)?;
         }
         Cmd::Report { name } => {
-            let _ = report::show_holdings(name);
+            report::show_holdings(name)?;
         }
         Cmd::AddTx(add_tx_cmd) => match add_tx_cmd {
             AddTxCmd::Trade {
@@ -71,8 +85,10 @@ fn main() {
                 price,
                 fee,
             } => {
-                let _ = add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee);
+                add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee)?;
             }
         },
     }
+
+    Ok(())
 }
