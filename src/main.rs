@@ -1,6 +1,7 @@
 // #![allow(dead_code)]
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, builder::ValueParser};
+use rust_decimal::Decimal;
 mod add_tx;
 mod csv;
 mod portfolio_file;
@@ -43,20 +44,19 @@ enum Cmd {
         name: String,
     },
     /// Add transaction to portfolio
-    #[command(subcommand, alias = "a")]
-    AddTx(AddTxCmd),
-}
-
-#[derive(Debug, Clone, Subcommand)]
-enum AddTxCmd {
-    /// Add a trade transaction (BUY or SELL)
-    Trade {
-        portfolio: String,
-        symbol: String,
+    AddTx {
+        #[arg(short, long)]
+        name: String,
+        #[arg(short, long)]
+        ticker: String,
+        #[arg(long)]
         side: String, // BUY or SELL
-        qty: f64,
-        price: f64,
-        fee: f64,
+        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
+        qty: Decimal,
+        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
+        price: Decimal,
+        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
+        fee: Decimal,
     },
 }
 
@@ -76,18 +76,16 @@ fn main() -> Result<()> {
         Cmd::Report { name } => {
             report::show_holdings(name)?;
         }
-        Cmd::AddTx(add_tx_cmd) => match add_tx_cmd {
-            AddTxCmd::Trade {
-                portfolio,
-                symbol,
-                side,
-                qty,
-                price,
-                fee,
-            } => {
-                add_tx::add_tx(portfolio, symbol, side, *qty, *price, *fee)?;
-            }
-        },
+        Cmd::AddTx {
+            name,
+            ticker,
+            side,
+            qty,
+            price,
+            fee,
+        } => {
+            add_tx::add_tx(name, ticker, side, *qty, *price, *fee)?;
+        }
     }
 
     Ok(())

@@ -4,22 +4,22 @@ use crate::{
     trading_pair::TradingPair,
 };
 use anyhow::Result;
-
+use rust_decimal::Decimal;
 pub fn add_tx(
     portfolio: &str,
     symbol: &str,
     side: &str,
-    qty: f64,
-    price: f64,
-    fee: f64,
+    qty: Decimal,
+    price: Decimal,
+    fee: Decimal,
 ) -> Result<()> {
     let tx = Trade {
         created_at: time::OffsetDateTime::now_utc(),
         pair: serde_plain::from_str::<TradingPair>(&symbol).unwrap(),
         side: serde_plain::from_str::<Side>(&side).unwrap(),
-        amount: rust_decimal::Decimal::from_f64_retain(qty).unwrap(),
-        price: rust_decimal::Decimal::from_f64_retain(price).unwrap(),
-        fee: rust_decimal::Decimal::from_f64_retain(fee).unwrap(),
+        amount: qty,
+        price: price,
+        fee: fee,
     };
 
     let path = path_from_name(portfolio)?;
