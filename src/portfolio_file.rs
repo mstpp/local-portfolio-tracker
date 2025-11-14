@@ -3,11 +3,15 @@ use std::{fs, path::PathBuf, time::SystemTime};
 
 pub const PORTFOLIO_PATH: &str = "./portfolios";
 
+pub fn portfolio_root() -> PathBuf {
+    if let Ok(p) = std::env::var("CSVPT_DATA_DIR") {
+        return PathBuf::from(p);
+    }
+    PathBuf::from(PORTFOLIO_PATH)
+}
+
 pub fn path_from_name(name: &str) -> Result<PathBuf> {
-    let path_buf = std::path::PathBuf::from(PORTFOLIO_PATH)
-        .join(name)
-        .with_extension("csv");
-    Ok(path_buf)
+    Ok(portfolio_root().join(name).with_extension("csv"))
 }
 
 pub fn path_str_from_name(name: &str) -> Result<String> {
@@ -100,8 +104,10 @@ fn is_csv_file(path: &PathBuf) -> bool {
 
 // v4
 fn list() -> Result<Vec<String>> {
-    let entries = fs::read_dir(PORTFOLIO_PATH)
-        .with_context(|| format!("Failed to read directory: {}", PORTFOLIO_PATH))?;
+    let pbuf: PathBuf = portfolio_root();
+    let path_str = pbuf.to_str().unwrap_or(PORTFOLIO_PATH);
+    let entries = fs::read_dir(path_str)
+        .with_context(|| format!("Failed to read directory: {}", path_str))?;
 
     let mut csv_files: Vec<(String, SystemTime)> = entries
         .filter_map(|entry| {
@@ -128,8 +134,12 @@ fn list() -> Result<Vec<String>> {
 pub fn print_list() -> Result<()> {
     println!("\nFound csv files:\n");
 
-    for item in list()? {
-        println!("\t{}", item);
+    let l = list()?;
+    let size = l.len();
+    if size == 0 {
+        println!("no portfolios found");
+    } else {
+        println!("{}", l.join("\n"));
     }
 
     Ok(())
