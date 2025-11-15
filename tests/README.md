@@ -6,11 +6,12 @@ Verify --help and -h show all commands, flags, argument types, and examples with
 Run list on a fresh workspace; prints an empty state message and exits 0.
 3.	Create New Portfolio (happy path)
 new <name> creates directory/files; rerun list shows the new portfolio.
+4.	Create Portfolio That Already Exists
+Second new <name> fails gracefully with a clear “File exists” error and non-zero exit.
 
 
 
-	4.	Create Portfolio That Already Exists
-Second new <name> fails gracefully with a clear “already exists” error and non-zero exit.
+
 	5.	Show Trades on Empty Portfolio
 show <name> on a newly created portfolio renders headers and “no trades” message.
 	6.	Add BUY Transaction (simple)

@@ -148,9 +148,10 @@ pub fn print_list() -> Result<()> {
 pub fn new(name: &str) -> Result<()> {
     // v1 - use PathBuf instead
     // let path = format!("./portfolios/{}", name);
-    let new_file_path = path_from_name(name)?;
+    let new_file_path: PathBuf = path_from_name(name)?;
     // v1: if name exists, it will overwrite the existing file
-    std::fs::File::create(new_file_path.clone()).with_context(|| "Couldn't create new csv file")?;
+    std::fs::File::create_new(new_file_path.clone())
+        .with_context(|| "Couldn't create new csv file")?;
     println!(
         "Successfully created new file: {}",
         new_file_path.to_str().unwrap_or("Unknown")
