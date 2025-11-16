@@ -8,13 +8,9 @@ Run list on a fresh workspace; prints an empty state message and exits 0.
 new <name> creates directory/files; rerun list shows the new portfolio.
 4.	Create Portfolio That Already Exists
 Second new <name> fails gracefully with a clear “File exists” error and non-zero exit.
-
-
-
-
-	5.	Show Trades on Empty Portfolio
+5.	Show Trades on Empty Portfolio
 show <name> on a newly created portfolio renders headers and “no trades” message.
-	6.	Add BUY Transaction (simple)
+6.	Add BUY Transaction (simple)
 add-tx --name <name> --ticker TICK --side buy --qty 10 --price 5 --fee 0.5 appends a row; show displays it correctly.
 	7.	Add SELL Transaction (simple)
 Add a sell; show reflects both rows in correct chronological order and formatting.

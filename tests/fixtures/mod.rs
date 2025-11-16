@@ -1,3 +1,8 @@
+//#[path = "common.rs"] //this is when no dir structure,
+// not playing well with analyzer, it sees dead code
+// mod common;
+use crate::common::stdout_list_has;
+
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
 use tempfile::TempDir;
@@ -8,9 +13,9 @@ pub struct TestContext {
 
 impl TestContext {
     pub fn new() -> Self {
-        Self {
-            temp_dir: TempDir::new().expect("failed to create temp dir"),
-        }
+        let temp_dir = TempDir::new().expect("failed to create temp dir");
+        // println!("DEBUG: TEMPDIR: {:?}", &temp_dir);
+        Self { temp_dir }
     }
 
     pub fn cmd(&self) -> assert_cmd::Command {
@@ -41,5 +46,24 @@ impl TestContext {
             name,
             path
         );
+    }
+
+    pub fn assert_list_contains(&self, name: &str) {
+        self.cmd()
+            .arg("list")
+            .assert()
+            .success()
+            .stdout(stdout_list_has(name))
+            .stderr(predicate::str::is_empty());
+    }
+
+    pub fn show_empty_portfolio(&self, name: &str) {
+        self.cmd()
+            .args(["show", "--name", name])
+            .assert()
+            .success()
+            .code(0)
+            .stdout(predicate::str::contains("No trades found"))
+            .stderr(predicate::str::is_empty());
     }
 }

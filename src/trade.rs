@@ -93,8 +93,14 @@ mod ts_seconds {
 
         // Validate: timestamp can't be in the future
         let now_epoch = OffsetDateTime::now_utc().unix_timestamp();
-        if ts >= now_epoch {
-            return Err(serde::de::Error::custom("timestamp is in the future"));
+        if ts > now_epoch {
+            return Err(serde::de::Error::custom(
+                format!(
+                    "timestamp is in the future: {:?}\ncurrent timestamp: {now_epoch}",
+                    &ts
+                )
+                .as_str(),
+            ));
         }
 
         // miliseconds are implicitly rejected

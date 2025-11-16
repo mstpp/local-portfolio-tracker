@@ -1,10 +1,11 @@
 use anyhow::{Context, Result};
-use std::{fs, path::PathBuf, time::SystemTime};
+use std::{fs, io::Write, path::PathBuf, time::SystemTime};
 
 pub const PORTFOLIO_PATH: &str = "./portfolios";
 
 pub fn portfolio_root() -> PathBuf {
     if let Ok(p) = std::env::var("CSVPT_DATA_DIR") {
+        // println!("DEBUG: Using CSVPT_DATA_DIR env var!");
         return PathBuf::from(p);
     }
     PathBuf::from(PORTFOLIO_PATH)
@@ -12,12 +13,6 @@ pub fn portfolio_root() -> PathBuf {
 
 pub fn path_from_name(name: &str) -> Result<PathBuf> {
     Ok(portfolio_root().join(name).with_extension("csv"))
-}
-
-pub fn path_str_from_name(name: &str) -> Result<String> {
-    let path_buf = path_from_name(name)?;
-    let path_str = path_buf.to_str().with_context(|| "Couldn't get path str")?;
-    Ok(path_str.to_string())
 }
 
 // v1
@@ -146,16 +141,17 @@ pub fn print_list() -> Result<()> {
 }
 
 pub fn new(name: &str) -> Result<()> {
-    // v1 - use PathBuf instead
-    // let path = format!("./portfolios/{}", name);
     let new_file_path: PathBuf = path_from_name(name)?;
-    // v1: if name exists, it will overwrite the existing file
-    std::fs::File::create_new(new_file_path.clone())
-        .with_context(|| "Couldn't create new csv file")?;
+    let mut file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&new_file_path)
+        .with_context(|| format!("Error while creating csv file {:?}", &new_file_path))?;
+    // write csv header
+    file.write_all("created_at,pair,side,amount,price,fee\n".as_bytes())?;
     println!(
         "Successfully created new file: {}",
         new_file_path.to_str().unwrap_or("Unknown")
     );
-    // v2: TODO if exists, propt for action or check for --force cli param flat
     Ok(())
 }

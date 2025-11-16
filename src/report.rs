@@ -1,6 +1,5 @@
 // #![allow(dead_code)]
 use crate::csv::read_trades_from_csv;
-use crate::portfolio_file::path_str_from_name;
 use crate::trade::{Side, Trade};
 use anyhow::Result;
 use rust_decimal::Decimal;
@@ -38,8 +37,7 @@ fn calc_holdings(book: &mut Book, tx: &Trade) {
 
 pub fn show_holdings(name: &str) -> Result<()> {
     let mut holdings: Book = HashMap::new();
-    let path = path_str_from_name(name)?;
-    let trades: Vec<Trade> = read_trades_from_csv(&path).unwrap();
+    let trades: Vec<Trade> = read_trades_from_csv(&name).unwrap();
     for tx in trades {
         calc_holdings(&mut holdings, &tx);
     }

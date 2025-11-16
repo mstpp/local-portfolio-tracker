@@ -32,7 +32,6 @@ pub fn add_tx(
         .has_headers(false)
         .from_writer(csv_file);
     wrt.serialize(&tx).unwrap();
-    // wrt.flush().unwrap(); // redundant
     println!(
         "✅ Added transaction to portfolio csv file: {:?}\n{:?}",
         path, tx
