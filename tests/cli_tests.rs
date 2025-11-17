@@ -95,20 +95,11 @@ mod add_tx_cmd_tests {
         let ctx = TestContext::new();
         let name = "basic";
         ctx.create_portfolio(name);
-        // ctx.assert_portfolio_exists(name);
-        // ctx.show_empty_portfolio(name);
-        ctx.cmd()
-            .args([
-                "add-tx", "--name", name, "--ticker", "BTC/USD", "--side", "BUY", "--qty", "0.2",
-                "--price", "96450", "--fee", "2",
-            ])
-            .assert()
-            .success()
-            .code(0)
-            .stdout(predicate::str::contains(
-                "Added transaction to portfolio csv file:",
-            ))
-            .stderr(predicate::str::is_empty());
+        ctx.assert_portfolio_exists(name);
+        ctx.show_empty_portfolio(name);
+        ctx.add_tx_buy_btc(name, "0.5", "96450", "37");
+
+        // validation
 
         let portfolio_path = ctx.portfolio_path(name);
         let contents = std::fs::read_to_string(&portfolio_path).expect("Can't read portfolio file");
@@ -121,5 +112,18 @@ mod add_tx_cmd_tests {
             .code(0)
             .stderr(predicate::str::is_empty())
             .stdout(predicate::str::contains("created_at"));
+    }
+}
+
+mod report_cmd_tests {
+    use super::*;
+
+    #[test]
+    fn report_single_ticker_single_tx_test() {
+        let ctx = TestContext::new();
+        let name = "testfolio";
+        ctx.create_portfolio(name);
+        ctx.add_tx_buy_btc(name, "0.5", "96450", "37");
+        ctx.report(name);
     }
 }

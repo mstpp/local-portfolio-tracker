@@ -66,4 +66,29 @@ impl TestContext {
             .stdout(predicate::str::contains("No trades found"))
             .stderr(predicate::str::is_empty());
     }
+
+    pub fn add_tx_buy_btc(&self, portfolio: &str, qty: &str, price: &str, fee: &str) {
+        self.cmd()
+            .args([
+                "add-tx", "--name", portfolio, "--ticker", "BTC/USD", "--side", "BUY", "--qty",
+                qty, "--price", price, "--fee", fee,
+            ])
+            .assert()
+            .success()
+            .code(0)
+            .stdout(predicate::str::contains(
+                "Added transaction to portfolio csv file:",
+            ))
+            .stderr(predicate::str::is_empty());
+    }
+
+    pub fn report(&self, portfolio: &str) {
+        self.cmd()
+            .args(["report", "--name", portfolio])
+            .assert()
+            .success()
+            .code(0)
+            .stderr(predicate::str::is_empty())
+            .stdout(predicate::str::contains("Total PnL USD:"));
+    }
 }

@@ -12,12 +12,17 @@ Second new <name> fails gracefully with a clear “File exists” error and non-
 show <name> on a newly created portfolio renders headers and “no trades” message.
 6.	Add BUY Transaction (simple)
 add-tx --name <name> --ticker TICK --side buy --qty 10 --price 5 --fee 0.5 appends a row; show displays it correctly.
+7.	Report Holdings (single ticker)
+report <name> computes quantities, average cost, unrealized PnL, and fees correctly for one ticker.
+
+
+
+
+
 	7.	Add SELL Transaction (simple)
 Add a sell; show reflects both rows in correct chronological order and formatting.
 	8.	Add Multiple Transactions / Aggregation Order
 Add several buys/sells out of chronological order; ensure persisted order or normalized sort is as specified by the app.
-	9.	Report Holdings (single ticker)
-report <name> computes quantities, average cost, unrealized PnL, and fees correctly for one ticker.
 	10.	Report Holdings (multiple tickers)
 Mix of tickers; verify per-ticker aggregation and a portfolio total line (if supported).
 	11.	Decimal Parsing & Precision
