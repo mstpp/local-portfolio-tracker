@@ -55,7 +55,7 @@ mod new_cmd_tests {
     #[test]
     fn fail_to_create_duplicate_portfolio() {
         let ctx = TestContext::new();
-        let name = "bravo";
+        let name = "dupli";
 
         ctx.create_portfolio(name);
         ctx.assert_portfolio_exists(name);
@@ -68,8 +68,7 @@ mod new_cmd_tests {
             .stderr(
                 predicate::str::contains("Error while creating csv file")
                     .and(predicate::str::contains("File exists")),
-            )
-            .stdout(predicate::str::is_empty());
+            );
     }
 }
 

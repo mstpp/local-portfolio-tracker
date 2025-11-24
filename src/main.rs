@@ -2,22 +2,25 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, builder::ValueParser};
 use rust_decimal::Decimal;
+use settings::Settings;
 mod add_tx;
 mod csv;
 mod portfolio_file;
 mod quote;
 mod report;
+mod settings;
 mod trade;
 mod trading_pair;
-
 /// CSV Portfolio Tracker
 ///
 /// A command-line tool to manage CSV-based investment portfolios, calculate PnL,
 /// and generate performance reports.
 #[derive(Debug, Clone, Parser)]
-struct Cli {
+pub struct Cli {
     #[command(subcommand)]
     commands: Cmd,
+    #[arg(short, long)]
+    portfolio_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, Subcommand)]
@@ -63,18 +66,20 @@ enum Cmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
+    let settings = std::rc::Rc::new(Settings::load(&cli)?);
+
     match &cli.commands {
         Cmd::List => {
-            portfolio_file::print_list()?;
+            portfolio_file::print_list(settings)?;
         }
         Cmd::New { name } => {
-            portfolio_file::new(name.as_str())?;
+            portfolio_file::new(name.as_str(), settings)?;
         }
         Cmd::Show { name } => {
-            csv::show_trades(name)?;
+            csv::show_trades(name, settings)?;
         }
         Cmd::Report { name } => {
-            report::show_holdings(name)?;
+            report::show_holdings(name, settings)?;
         }
         Cmd::AddTx {
             name,
@@ -84,7 +89,7 @@ fn main() -> Result<()> {
             price,
             fee,
         } => {
-            add_tx::add_tx(name, ticker, side, *qty, *price, *fee)?;
+            add_tx::add_tx(name, ticker, side, *qty, *price, *fee, settings)?;
         }
     }
 

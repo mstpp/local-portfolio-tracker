@@ -14,13 +14,12 @@ pub struct TestContext {
 impl TestContext {
     pub fn new() -> Self {
         let temp_dir = TempDir::new().expect("failed to create temp dir");
-        // println!("DEBUG: TEMPDIR: {:?}", &temp_dir);
         Self { temp_dir }
     }
 
     pub fn cmd(&self) -> assert_cmd::Command {
         let mut cmd = cargo_bin_cmd!("portfolio-tracker");
-        cmd.env("CSVPT_DATA_DIR", self.temp_dir.path());
+        cmd.env("LPT_PORTFOLIO_DIR", self.temp_dir.path());
         cmd
     }
 

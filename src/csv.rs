@@ -1,12 +1,13 @@
 // #![allow(dead_code)]
 use crate::portfolio_file::path_from_name;
+use crate::settings::Settings;
 use crate::trade::Trade;
 use anyhow::Result;
-
+use std::rc::Rc;
 //  v1: anyhow::Error instead of Box<dyn Error>
 //  v2: anyhow::Result
-pub fn read_trades_from_csv(name: &str) -> Result<Vec<Trade>> {
-    let path = path_from_name(name)?;
+pub fn read_trades_from_csv(name: &str, settings: Rc<Settings>) -> Result<Vec<Trade>> {
+    let path = path_from_name(name, settings)?;
     // println!("DEBUG: path buf to read trades from: {:?}", &path);
     let file = std::fs::File::open(path)?;
     let mut reader = csv::Reader::from_reader(file);
@@ -48,8 +49,8 @@ pub fn read_trades_from_csv(name: &str) -> Result<Vec<Trade>> {
     Ok(trades)
 }
 
-pub fn show_trades(name: &str) -> Result<()> {
-    let trades = read_trades_from_csv(name)?;
+pub fn show_trades(name: &str, settings: Rc<Settings>) -> Result<()> {
+    let trades = read_trades_from_csv(name, settings)?;
     if trades.len() == 0 {
         println!("No trades found in '{}'", &name);
     }

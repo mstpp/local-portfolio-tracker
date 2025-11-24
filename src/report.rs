@@ -1,11 +1,13 @@
 // #![allow(dead_code)]
 use crate::csv::read_trades_from_csv;
+use crate::settings::Settings;
 use crate::trade::{Side, Trade};
 use anyhow::Result;
 use rust_decimal::Decimal;
 use rust_decimal::dec;
 use rust_decimal::prelude::FromPrimitive;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 type Position = (Decimal, Decimal, Decimal); // (amount, avg_price, total_fees)
 type Book = HashMap<String, Position>;
@@ -35,9 +37,9 @@ fn calc_holdings(book: &mut Book, tx: &Trade) {
     *pos = (new_amount, new_avg, new_fee);
 }
 
-pub fn show_holdings(name: &str) -> Result<()> {
+pub fn show_holdings(name: &str, settings: Rc<Settings>) -> Result<()> {
     let mut holdings: Book = HashMap::new();
-    let trades: Vec<Trade> = read_trades_from_csv(&name).unwrap();
+    let trades: Vec<Trade> = read_trades_from_csv(&name, settings).unwrap();
     for tx in trades {
         calc_holdings(&mut holdings, &tx);
     }

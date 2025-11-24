@@ -1,3 +1,4 @@
+use crate::settings::Settings;
 use crate::{
     portfolio_file::path_from_name,
     trade::{Side, Trade},
@@ -5,6 +6,8 @@ use crate::{
 };
 use anyhow::Result;
 use rust_decimal::Decimal;
+use std::rc::Rc;
+
 pub fn add_tx(
     portfolio: &str,
     symbol: &str,
@@ -12,6 +15,7 @@ pub fn add_tx(
     qty: Decimal,
     price: Decimal,
     fee: Decimal,
+    settings: Rc<Settings>,
 ) -> Result<()> {
     let tx = Trade {
         created_at: time::OffsetDateTime::now_utc(),
@@ -22,7 +26,7 @@ pub fn add_tx(
         fee: fee,
     };
 
-    let path = path_from_name(portfolio)?;
+    let path = path_from_name(portfolio, settings)?;
 
     let csv_file = std::fs::OpenOptions::new()
         .append(true)
