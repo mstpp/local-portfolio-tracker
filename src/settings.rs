@@ -45,8 +45,6 @@ impl Settings {
         if std::fs::exists(&dotfile_path).unwrap_or(false) {
             println!("Loading config from: {}", dotfile_path);
             builder = builder.add_source(config::File::with_name(&dotfile_path).required(false));
-        } else {
-            println!("No config file found at {}, using defaults", dotfile_path);
         }
 
         // Layer 3: Environment variables (LPT_PORTFOLIO_DIR, LPT_BASE_CURRENCY, etc.)
@@ -75,7 +73,6 @@ impl Settings {
             eprintln!("⚠️  Config warning: {}", warning);
         }
 
-        println!("DEBUG: builder: {:?}", &settings);
         Ok(settings)
     }
 

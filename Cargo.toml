@@ -3,6 +3,10 @@ name = "portfolio-tracker"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "get_coingecko_tickers"
+path = "bin/get_coingecko_tickers.rs"
+
 [dependencies]
 anyhow = "1.0.100"
 assert_cmd = "2.1.1"

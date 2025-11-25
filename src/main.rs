@@ -76,7 +76,7 @@ fn main() -> Result<()> {
             portfolio_file::new(name.as_str(), settings)?;
         }
         Cmd::Show { name } => {
-            csv::show_trades(name, settings)?;
+            csv::show_trades(name, settings)?; // display only what is in the CSV file
         }
         Cmd::Report { name } => {
             report::show_holdings(name, settings)?;

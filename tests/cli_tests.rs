@@ -98,12 +98,6 @@ mod add_tx_cmd_tests {
         ctx.show_empty_portfolio(name);
         ctx.add_tx_buy_btc(name, "0.5", "96450", "37");
 
-        // validation
-
-        let portfolio_path = ctx.portfolio_path(name);
-        let contents = std::fs::read_to_string(&portfolio_path).expect("Can't read portfolio file");
-        println!("DEBUG: File contents:\n{}", &contents);
-
         ctx.cmd()
             .args(["show", "--name", name])
             .assert()

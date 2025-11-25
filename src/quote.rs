@@ -10,15 +10,6 @@ const COINGECKO_TAB: &str = "data/coingecko.csv";
 const CG_QUOTE_USD_API: &str =
     "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd";
 
-// v1
-// moving to use struct with serde,
-// readability and complexity for using tuple on too many places
-// type Coin = (String, String, String); // (id, symbol, name)
-
-// v1:
-// type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
-type Err = Box<dyn std::error::Error>; // TODO use anyhow::Result instead?
-
 // needed for deserialization of api return price, which is in format
 // {"bitcoin":{"usd":109509},"ethereum":{"usd":3885.46}
 // ** currently only suporting USD quotes
@@ -32,7 +23,7 @@ struct Price {
 /// Coingecko API accepts ids, while we are using short tickers elsewhere
 /// that is why translation from ticker to id is required
 /// e.g ticker: BTC -> id: bitcoin
-pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>, Err> {
+pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>> {
     // get coingecko coin ids from tickers from coingecko csv table
     let ids = to_ids(&tickers)?;
 
@@ -53,60 +44,12 @@ pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>, Err> {
     Ok(quotes_hm)
 }
 
-// Learning 📖
-// v1 [bug]
-//
-// fn to_ids(tickers: Vec<String>) -> Result<Vec<String>, Err> {
-//     let mut reader = csv::Reader::from_path("data/coingecko.csv")?;
-//     let data: Vec<Coin> = reader
-//         .deserialize()
-//         .collect::<Result<Vec<Coin>, csv::Error>>()?;
-//     let mut ids: Vec<String> = Vec::new();
-//     // ⛔️ inefficient: going over whole csv data instead of over tickers
-//     for (id, symbol, _) in data.iter() {
-//         // ⚠️⛔️🐛 ORDER is not preserved, find based on order in the csv file
-//         if tickers.contains(&symbol) {
-//             ids.push(id.to_string());
-//         }
-//     }
-//     // ⛔️ TODO missing validation if all ids found for all tickers
-//     Ok(ids)
-// }
-
 #[derive(Debug, Deserialize)]
 struct Coin {
     id: String,
     symbol: String,
     name: String, // TODO not used (dead code)
 }
-
-// Learning 📖
-// v1 [bug]
-//
-// .ok_or_else(|| format!("Ticker not found: {}", t))
-// cannot accept String type, but needs a Error type!
-//
-// fn to_ids_v1(tickers: &[String]) -> Result<Vec<String>, Err> {
-//     let mut reader = csv::Reader::from_path(COINGECKO_TAB)?;
-
-//     let symbol_to_id: HashMap<String, String> = reader
-//         .deserialize()
-//         .collect::<csv::Result<Vec<Coin>>>()?
-//         .into_iter()
-//         .map(|coin| (coin.symbol.to_uppercase(), coin.id))
-//         .collect();
-
-//     let ids: Vec<String> = tickers
-//         .iter()
-//         .map(|t| {
-//             symbol_to_id
-//                 .get(&t.to_uppercase())
-//                 .cloned()
-//                 .ok_or_else(|| format!("Ticker not found: {}", t)) // ⚠️⛔️🐛
-//         })
-//         .collect::<Result<Vec<_>, _>>()?;
-//     Ok(ids)
-// }
 
 fn to_ids(tickers: &[String]) -> anyhow::Result<Vec<String>> {
     let mut reader = csv::Reader::from_path(COINGECKO_TAB)
@@ -138,14 +81,6 @@ fn to_ids(tickers: &[String]) -> anyhow::Result<Vec<String>> {
 mod tests {
     use super::*;
 
-    // Learning 📖
-    // v1
-    // purpose: avoid adding .to_sting() in each vec memeber
-    //
-    // fn vs(v: &[&str]) -> Vec<String> {
-    //     v.iter().map(|i| i.to_string()).collect()
-    // }
-
     macro_rules! vs {
         ($($s:expr),* $(,)?) => {
             vec![$($s.to_string()),*]
@@ -161,9 +96,11 @@ mod tests {
 
     #[test]
     fn test_to_ids_multiple_matches() {
-        let tickers = vs!["eth", "SOL"];
+        // do not use SOL, SOL is the same ticker for Solana and wrapped solana
+        // similar for DOGE
+        let tickers = vs!["eth", "ADA"];
         let ids = to_ids(&tickers).unwrap();
-        assert_eq!(ids, vec!["ethereum", "solana"]);
+        assert_eq!(ids, vec!["ethereum", "cardano"]);
     }
 
     #[test]
@@ -181,15 +118,15 @@ mod tests {
 
     #[test]
     fn test_ticker_to_id_order() {
-        let tickers = vs!["SOL", "eth", "BTC"];
+        let tickers = vs!["ADA", "eth", "BTC"];
         assert_eq!(
             to_ids(&tickers).unwrap(),
-            vec!["solana", "ethereum", "bitcoin"]
+            vec!["cardano", "ethereum", "bitcoin"]
         );
-        let tickers = vs!["SOL", "eth", "ada", "BTC"];
+        let tickers = vs!["TRX", "eth", "ada", "BTC"];
         assert_eq!(
             to_ids(&tickers).unwrap(),
-            vec!["solana", "ethereum", "cardano", "bitcoin"]
+            vec!["tron", "ethereum", "cardano", "bitcoin"]
         );
     }
 }
