@@ -7,10 +7,12 @@ mod add_tx;
 mod csv;
 mod portfolio_file;
 mod quote;
+mod quote_currency;
 mod report;
 mod settings;
 mod trade;
 mod trading_pair;
+
 /// CSV Portfolio Tracker
 ///
 /// A command-line tool to manage CSV-based investment portfolios, calculate PnL,

@@ -1,4 +1,5 @@
 use crate::Cli;
+use crate::quote_currency::QuoteCurrency;
 use anyhow::{Context, Result};
 use config::Config;
 use serde::{Deserialize, Serialize};
@@ -13,14 +14,14 @@ pub struct Settings {
     // TODO add new type (currency that can be base)
     // for now, validate it's in small set (USD,BTC)
     #[serde(default = "default_base_currency")]
-    pub base_currency: String,
+    pub base_currency: QuoteCurrency,
 }
 
 fn default_portfolio_dir() -> PathBuf {
     PathBuf::from("./portfolios")
 }
-fn default_base_currency() -> String {
-    "USD".to_string()
+fn default_base_currency() -> QuoteCurrency {
+    QuoteCurrency::Usd
 }
 
 impl Default for Settings {
@@ -78,20 +79,7 @@ impl Settings {
 
     /// Validate settings and return warnings for invalid values
     fn validate(&mut self) -> Vec<String> {
-        // TODO handle through type
-        let allowed_base_currency = std::collections::HashSet::from(["USD", "BTC"]);
-
         let mut warnings = Vec::new();
-
-        // Validate base_currency (should be 3-letter code)
-        if !allowed_base_currency.contains(self.base_currency.as_str()) {
-            warnings.push(format!(
-                "Invalid base_currency '{}', using default '{}'",
-                self.base_currency,
-                default_base_currency()
-            ));
-            self.base_currency = default_base_currency();
-        }
 
         // Validate data_dir (attempt to create if doesn't exist)
         if let Err(e) = std::fs::create_dir_all(&self.portfolio_dir) {

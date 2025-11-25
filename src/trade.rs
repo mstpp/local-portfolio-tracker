@@ -32,24 +32,6 @@ pub struct Trade {
     pub fee: Decimal,
 }
 
-// Learning 📖
-// ⛔️ Not using validation fn, it needs to be called explicitly
-// better approach: validate as part of deserialization
-// impl Trade {
-//     pub fn validate(&self) -> Result<()> {
-//         if self.amount <= Decimal::ZERO {
-//             return Err(anyhow::anyhow!("value must be > 0"));
-//         }
-//         if self.price <= Decimal::ZERO {
-//             return Err(anyhow::anyhow!("price must be > 0"));
-//         }
-//         if self.fee < Decimal::ZERO {
-//             return Err(anyhow::anyhow!("negative fee not allowed"));
-//         }
-//         Ok(())
-//     }
-// }
-
 fn positive_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
 where
     D: Deserializer<'de>,

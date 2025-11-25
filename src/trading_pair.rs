@@ -1,11 +1,13 @@
+use std::str::FromStr;
+
+use crate::quote_currency::QuoteCurrency;
 use anyhow::Result;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-// Learning example 📖 : manually implementing ser/deser traits
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TradingPair {
     pub base: String,
-    pub quote: String,
+    pub quote: QuoteCurrency,
 }
 
 impl Serialize for TradingPair {
@@ -45,9 +47,11 @@ impl<'de> Deserialize<'de> for TradingPair {
             ));
         }
 
+        let quote_curr = QuoteCurrency::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
+
         Ok(TradingPair {
             base: parts[0].to_string(),
-            quote: parts[1].to_string(),
+            quote: quote_curr,
         })
     }
 }
@@ -64,7 +68,7 @@ mod tests {
             TestPair {
                 pair: TradingPair {
                     base: "ETH".to_string(),
-                    quote: "USD".to_string()
+                    quote: QuoteCurrency::Usd
                 }
             },
             d
@@ -117,7 +121,7 @@ mod tests {
             TestPair {
                 pair: TradingPair {
                     base: "BTC".to_string(),
-                    quote: "USD".to_string()
+                    quote: QuoteCurrency::Usd
                 }
             },
             d
@@ -134,7 +138,7 @@ mod tests {
             TestPair {
                 pair: TradingPair {
                     base: "ETH2".to_string(),
-                    quote: "USD".to_string()
+                    quote: QuoteCurrency::Usd
                 }
             },
             d
