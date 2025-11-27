@@ -24,6 +24,7 @@ where
 /// Get tickers for first 250 coins by mcap from Coingecko API
 /// Requirements:
 /// - CGECKO_API_KEY in environment vars
+// TODO expand to use ALL tickers (20k) but for that switch to save them in pfh .rs lookup table
 pub fn tickers() -> Result<()> {
     let api_key =
         std::env::var("CGECKO_API_KEY").with_context(|| "CGECKO_API_KEY env var missing")?;

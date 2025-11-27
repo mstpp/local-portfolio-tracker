@@ -21,3 +21,9 @@ cargo r -- n novi-portfolio
 cargo r -- r example
 cargo r -- a -n example -t BTC/USD --side BUY -q 0.1 -p 99000 -f 12
 ```
+
+### Generate csv file with tickers 
+
+It will produce `data/coingecko.csv`: 
+
+`cargo r --bin get_coingecko_tickers`

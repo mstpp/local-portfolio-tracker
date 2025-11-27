@@ -1,13 +1,16 @@
+use std::{path::PathBuf, str::FromStr};
+
 // #![allow(dead_code)]
 use anyhow::Result;
 use clap::{Parser, Subcommand, builder::ValueParser};
+use currency::init_tickers_from_csv;
 use rust_decimal::Decimal;
 use settings::Settings;
 mod add_tx;
 mod csv;
+mod currency;
 mod portfolio_file;
 mod quote;
-mod quote_currency;
 mod report;
 mod settings;
 mod trade;
@@ -69,6 +72,8 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
 
     let settings = std::rc::Rc::new(Settings::load(&cli)?);
+    // TODO add tickers_data to settings
+    init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv")?)?;
 
     match &cli.commands {
         Cmd::List => {

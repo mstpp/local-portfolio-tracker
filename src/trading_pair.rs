@@ -1,12 +1,11 @@
-use std::str::FromStr;
-
-use crate::quote_currency::QuoteCurrency;
+use crate::currency::{QuoteCurrency, Ticker};
 use anyhow::Result;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::str::FromStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TradingPair {
-    pub base: String,
+    pub base: Ticker,
     pub quote: QuoteCurrency,
 }
 
@@ -47,10 +46,11 @@ impl<'de> Deserialize<'de> for TradingPair {
             ));
         }
 
+        let base_curr = Ticker::from_str(&parts[0]).map_err(serde::de::Error::custom)?;
         let quote_curr = QuoteCurrency::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
 
         Ok(TradingPair {
-            base: parts[0].to_string(),
+            base: base_curr,
             quote: quote_curr,
         })
     }
@@ -59,25 +59,31 @@ impl<'de> Deserialize<'de> for TradingPair {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::currency::init_tickers_from_csv;
+    use std::path::PathBuf;
+
+    #[derive(Debug, Deserialize, Serialize, PartialEq)]
+    pub struct TestPair {
+        pub pair: TradingPair,
+    }
 
     /// Verifies that the serialized output follows the "BASE/QUOTE" format with a single `/` separator.
     #[test]
     fn test_serialize_uses_slash_separator() {
+        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
+
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"ETH/USD"}"#).unwrap();
         assert_eq!(
             TestPair {
                 pair: TradingPair {
-                    base: "ETH".to_string(),
+                    base: Ticker {
+                        id: "ETH".to_string()
+                    },
                     quote: QuoteCurrency::Usd
                 }
             },
             d
         );
-    }
-
-    #[derive(Debug, Deserialize, Serialize, PartialEq)]
-    pub struct TestPair {
-        pub pair: TradingPair,
     }
 
     /// Verifies that any quote currency other than "USD" (e.g., "BTC/EUR") is rejected.
@@ -116,11 +122,15 @@ mod tests {
     /// Ensures that both `base` and `quote` are serialized in uppercase form regardless of input casing.
     #[test]
     fn test_serialize_converts_to_uppercase() {
+        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
+
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"btc/UsD"}"#).unwrap();
         assert_eq!(
             TestPair {
                 pair: TradingPair {
-                    base: "BTC".to_string(),
+                    base: Ticker {
+                        id: "BTC".to_string()
+                    },
                     quote: QuoteCurrency::Usd
                 }
             },
@@ -133,11 +143,14 @@ mod tests {
     /// Checks that non-alphabetic symbols in `base` (like "eth2") are preserved during serialization.
     #[test]
     fn test_serialize_preserves_alphanumeric_symbols() {
-        let d = serde_json::from_str::<TestPair>(r#"{"pair":"eth2/USD"}"#).unwrap();
+        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
+        let d = serde_json::from_str::<TestPair>(r#"{"pair":"usdt0/USD"}"#).unwrap();
         assert_eq!(
             TestPair {
                 pair: TradingPair {
-                    base: "ETH2".to_string(),
+                    base: Ticker {
+                        id: "USDT0".to_string()
+                    },
                     quote: QuoteCurrency::Usd
                 }
             },

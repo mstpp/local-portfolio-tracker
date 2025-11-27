@@ -1,5 +1,5 @@
 use crate::Cli;
-use crate::quote_currency::QuoteCurrency;
+use crate::currency::QuoteCurrency;
 use anyhow::{Context, Result};
 use config::Config;
 use serde::{Deserialize, Serialize};
