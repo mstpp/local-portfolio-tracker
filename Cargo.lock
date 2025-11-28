@@ -1301,6 +1301,7 @@ dependencies = [
  "clap",
  "config",
  "csv",
+ "log",
  "predicates",
  "reqwest",
  "rust_decimal",

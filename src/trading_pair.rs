@@ -60,18 +60,40 @@ impl<'de> Deserialize<'de> for TradingPair {
 mod tests {
     use super::*;
     use crate::currency::init_tickers_from_csv;
-    use std::path::PathBuf;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     pub struct TestPair {
         pub pair: TradingPair,
     }
 
+    fn create_test_csv() -> NamedTempFile {
+        let mut file = NamedTempFile::new().unwrap();
+        writeln!(
+            file,
+            "id,symbol,name\n\
+             bitcoin,btc,Bitcoin\n\
+             ethereum,eth,Ethereum\n\
+             tether,usdt,Tether\n\
+             binancecoin,bnb,BNB\n\
+             cardano,ada,Cardano\n\
+             usdt zero,usdt0,zero usdt0"
+        )
+        .unwrap();
+        file.flush().unwrap();
+        file
+    }
+
+    fn setup_tickers() {
+        let csv_file = create_test_csv();
+        let _ = init_tickers_from_csv(csv_file.path().to_path_buf());
+    }
+
     /// Verifies that the serialized output follows the "BASE/QUOTE" format with a single `/` separator.
     #[test]
     fn test_serialize_uses_slash_separator() {
-        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
-
+        setup_tickers();
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"ETH/USD"}"#).unwrap();
         assert_eq!(
             TestPair {
@@ -122,8 +144,7 @@ mod tests {
     /// Ensures that both `base` and `quote` are serialized in uppercase form regardless of input casing.
     #[test]
     fn test_serialize_converts_to_uppercase() {
-        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
-
+        setup_tickers();
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"btc/UsD"}"#).unwrap();
         assert_eq!(
             TestPair {
@@ -138,12 +159,10 @@ mod tests {
         );
     }
 
-    // 🤖 generated:
-
     /// Checks that non-alphabetic symbols in `base` (like "eth2") are preserved during serialization.
     #[test]
     fn test_serialize_preserves_alphanumeric_symbols() {
-        init_tickers_from_csv(PathBuf::from_str("./data/coingecko.csv").unwrap()).unwrap();
+        setup_tickers();
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"usdt0/USD"}"#).unwrap();
         assert_eq!(
             TestPair {
