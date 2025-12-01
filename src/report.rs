@@ -9,13 +9,6 @@ use rust_decimal::prelude::FromPrimitive;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-// what makes one position?
-// BTC - base currency
-// holdings
-// USD - quote currency
-// average price (in quote currency)
-// total fees (in quote currency)
-
 type Position = (Decimal, Decimal, Decimal); // (amount, avg_price, total_fees)
 type Book = HashMap<String, Position>;
 

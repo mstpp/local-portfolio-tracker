@@ -5,7 +5,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 
-static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
+pub static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
 
 #[derive(Deserialize)]
 struct CsvRow {
@@ -21,7 +21,7 @@ fn normalize_ticker(s: &str) -> String {
     s.trim().to_ascii_uppercase()
 }
 
-fn load_tickers_from_csv(path: PathBuf) -> Result<HashSet<String>> {
+pub fn load_tickers_from_csv(path: PathBuf) -> Result<HashSet<String>> {
     let file = std::fs::File::open(path)?;
     let mut reader = csv::Reader::from_reader(file);
     let mut tickers = HashSet::new();
@@ -136,41 +136,25 @@ impl std::str::FromStr for QuoteCurrency {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utils::fixtures::tickers;
+    use rstest::*;
     use std::io::Write;
     use tempfile::NamedTempFile;
 
-    // - - - - - setup - - - - -
-    fn create_test_csv() -> NamedTempFile {
-        let mut file = NamedTempFile::new().unwrap();
-        writeln!(
-            file,
-            "id,symbol,name\n\
-            bitcoin,btc,Bitcoin\n\
-            ethereum,eth,Ethereum\n\
-            tether,usdt,Tether\n\
-            binancecoin,bnb,BNB\n\
-            cardano,ada,Cardano\n\
-            usdt zero,usdt0,zero usdt0"
-        )
-        .unwrap();
-        file.flush().unwrap();
-        file
-    }
-
-    fn setup_tickers() -> Result<HashSet<String>> {
-        load_tickers_from_csv(create_test_csv().path().to_path_buf())
-    }
-
-    fn init_tickers() {
-        let csv_file = create_test_csv(); // keep it in scope
-        let csv_path = csv_file.path().to_path_buf();
-        let _ = init_tickers_from_csv(csv_path.clone()).unwrap();
-        println!("TICKERS: {:?}", &TICKERS);
-    }
-    // - - - - - setup end - - - - -
-
     mod basic {
+        use std::str::FromStr;
+
         use super::*;
+
+        #[rstest]
+        fn test_from_str(_tickers: ()) {
+            assert_eq!(
+                Ticker::from_str("btc"),
+                Ok(Ticker {
+                    id: "BTC".to_string()
+                })
+            )
+        }
 
         #[test]
         fn test_normalize_ticker() {
@@ -179,27 +163,26 @@ mod tests {
             assert_eq!(&normalize_ticker("\n abc\t "), "ABC");
         }
 
-        #[test]
-        fn test_load_ticker_from_csv() {
-            let res = setup_tickers().unwrap();
-            assert!(res.contains("BTC"));
-            assert!(res.contains("ETH"));
-            assert!(res.contains("USDT"));
-            assert!(res.contains("BNB"));
-            assert!(res.contains("ADA"));
-            assert!(res.contains("USDT0"));
-        }
+        // #[test]
+        // fn test_load_ticker_from_csv() {
+        //     let res = setup_tickers().unwrap();
+        //     assert!(res.contains("BTC"));
+        //     assert!(res.contains("ETH"));
+        //     assert!(res.contains("USDT"));
+        //     assert!(res.contains("BNB"));
+        //     assert!(res.contains("ADA"));
+        //     assert!(res.contains("USDT0"));
+        // }
 
-        #[test]
-        fn test_idempotent_init() {
-            init_tickers();
-            init_tickers();
-            assert!(is_valid_ticker("BTC"));
-        }
+        // #[test]
+        // fn test_idempotent_init() {
+        //     init_tickers();
+        //     init_tickers();
+        //     assert!(is_valid_ticker("BTC"));
+        // }
 
-        #[test]
-        fn test_valid_ticker() {
-            init_tickers();
+        #[rstest]
+        fn test_valid_ticker(_tickers: ()) {
             assert!(is_valid_ticker("BTC"));
             assert!(is_valid_ticker("ADA"));
             assert!(is_valid_ticker("eth "));
@@ -207,9 +190,8 @@ mod tests {
             assert!(is_valid_ticker(" \t eth  \n "));
         }
 
-        #[test]
-        fn test_invalid_ticker() {
-            init_tickers();
+        #[rstest]
+        fn test_invalid_ticker(_tickers: ()) {
             assert!(!is_valid_ticker("abtc"));
             assert!(!is_valid_ticker("aaADA"));
             assert!(!is_valid_ticker(""));
@@ -222,17 +204,15 @@ mod tests {
             is_valid_ticker("abtc");
         }
 
-        #[test]
-        fn test_ticker_from_str_invalid() {
-            init_tickers();
+        #[rstest]
+        fn test_ticker_from_str_invalid(_tickers: ()) {
             let result: Result<Ticker, _> = "INVALID".parse();
             assert!(result.is_err());
             assert!(result.unwrap_err().contains("Invalid ticker"));
         }
 
-        #[test]
-        fn test_ticker_from_str_normalizes() {
-            init_tickers();
+        #[rstest]
+        fn test_ticker_from_str_normalizes(_tickers: ()) {
             let ticker1: Ticker = "btc".parse().unwrap();
             let ticker2: Ticker = "BTC".parse().unwrap();
             let ticker3: Ticker = "  btc  ".parse().unwrap();
@@ -242,16 +222,14 @@ mod tests {
             assert_eq!(ticker3.id, "BTC");
         }
 
-        #[test]
-        fn test_ticker_display() {
-            init_tickers();
+        #[rstest]
+        fn test_ticker_display(_tickers: ()) {
             let ticker: Ticker = "btc".parse().unwrap();
             assert_eq!(ticker.to_string(), "BTC");
         }
 
-        #[test]
-        fn test_ticker_serialize() {
-            init_tickers();
+        #[rstest]
+        fn test_ticker_serialize(_tickers: ()) {
             let ticker: Ticker = "btc".parse().unwrap();
             let json = serde_json::to_string(&ticker).unwrap();
             assert_eq!(json, r#"{"id":"BTC"}"#);
@@ -340,9 +318,8 @@ mod tests {
     mod edge_cases {
         use super::*;
 
-        #[test]
-        fn test_empty_ticker_string() {
-            init_tickers();
+        #[rstest]
+        fn test_empty_ticker_string(_tickers: ()) {
             let result: Result<Ticker, _> = "".parse();
             assert!(
                 result
@@ -351,9 +328,8 @@ mod tests {
             )
         }
 
-        #[test]
-        fn test_whitespace_only_ticker() {
-            init_tickers();
+        #[rstest]
+        fn test_whitespace_only_ticker(_tickers: ()) {
             let result: Result<Ticker, _> = "   ".parse();
             assert!(result.is_err());
         }

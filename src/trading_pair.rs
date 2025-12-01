@@ -59,41 +59,39 @@ impl<'de> Deserialize<'de> for TradingPair {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::currency::init_tickers_from_csv;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
+    use crate::test_utils::fixtures::tickers;
+    use rstest::*;
 
     #[derive(Debug, Deserialize, Serialize, PartialEq)]
     pub struct TestPair {
         pub pair: TradingPair,
     }
 
-    fn create_test_csv() -> NamedTempFile {
-        let mut file = NamedTempFile::new().unwrap();
-        writeln!(
-            file,
-            "id,symbol,name\n\
-             bitcoin,btc,Bitcoin\n\
-             ethereum,eth,Ethereum\n\
-             tether,usdt,Tether\n\
-             binancecoin,bnb,BNB\n\
-             cardano,ada,Cardano\n\
-             usdt zero,usdt0,zero usdt0"
-        )
-        .unwrap();
-        file.flush().unwrap();
-        file
+    // validate base and quote can't be the same
+    #[rstest]
+    fn test_base_and_quote_cannot_be_the_same_usd(_tickers: ()) {
+        let p = serde_json::from_str::<TestPair>(r#"{"pair":"USD/USD"}"#);
+        // Invalid ticker: USD
+        assert!(p.is_err(), "expected err, got {:?}", &p);
     }
 
-    fn setup_tickers() {
-        let csv_file = create_test_csv();
-        let _ = init_tickers_from_csv(csv_file.path().to_path_buf());
+    #[rstest]
+    fn test_base_and_quote_cannot_be_the_same_btc(_tickers: ()) {
+        let p = serde_json::from_str::<TestPair>(r#"{"pair":"BTC/BTC"}"#);
+        // TODO once we accept both btc and usd, this shoud not fail
+        // currently it's passing since only USD is allowed
+        println!("{:?}", &p);
+        assert!(p.is_err(), "expected err, got {:?}", &p);
+
+        // let pair = TradingPair {
+        //     base: Ticker::from_str("BTC").unwrap(),
+        //     quote: QuoteCurrency::Btc,
+        // };
     }
 
     /// Verifies that the serialized output follows the "BASE/QUOTE" format with a single `/` separator.
-    #[test]
-    fn test_serialize_uses_slash_separator() {
-        setup_tickers();
+    #[rstest]
+    fn test_serialize_uses_slash_separator(_tickers: ()) {
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"ETH/USD"}"#).unwrap();
         assert_eq!(
             TestPair {
@@ -142,9 +140,8 @@ mod tests {
     }
 
     /// Ensures that both `base` and `quote` are serialized in uppercase form regardless of input casing.
-    #[test]
-    fn test_serialize_converts_to_uppercase() {
-        setup_tickers();
+    #[rstest]
+    fn test_serialize_converts_to_uppercase(_tickers: ()) {
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"btc/UsD"}"#).unwrap();
         assert_eq!(
             TestPair {
@@ -160,9 +157,8 @@ mod tests {
     }
 
     /// Checks that non-alphabetic symbols in `base` (like "eth2") are preserved during serialization.
-    #[test]
-    fn test_serialize_preserves_alphanumeric_symbols() {
-        setup_tickers();
+    #[rstest]
+    fn test_serialize_preserves_alphanumeric_symbols(_tickers: ()) {
         let d = serde_json::from_str::<TestPair>(r#"{"pair":"usdt0/USD"}"#).unwrap();
         assert_eq!(
             TestPair {

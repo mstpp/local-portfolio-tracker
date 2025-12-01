@@ -16,7 +16,7 @@ use time::OffsetDateTime;
 /// created_at,pair,side,amount,price,fee
 /// 1704883200,BTC/USD,BUY,1.0,40000.00,7.50
 /// ```
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Trade {
     /// In the csv file we prefer to have epoch as timestamp,
     /// while in the runtime we would like to have OffsetDateTime type
@@ -90,7 +90,7 @@ mod ts_seconds {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Side {
     Buy,

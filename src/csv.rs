@@ -1,13 +1,15 @@
-// #![allow(dead_code)]
 use crate::portfolio_file::path_from_name;
 use crate::settings::Settings;
 use crate::trade::Trade;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::rc::Rc;
 
 pub fn read_trades_from_csv(name: &str, settings: Rc<Settings>) -> Result<Vec<Trade>> {
-    let path = path_from_name(name, settings)?;
-    let file = std::fs::File::open(path)?;
+    let path = path_from_name(name, settings).context("Failed to resolve portfolio path")?;
+
+    let file = std::fs::File::open(&path)
+        .with_context(|| format!("Failed to open file: {}", path.display()))?;
+
     let mut reader = csv::Reader::from_reader(file);
 
     // with filtering out lines that can't be deserialized 🪲 not a good idea, masking bugs (UTC timestamp)
@@ -28,4 +30,110 @@ pub fn show_trades(name: &str, settings: Rc<Settings>) -> Result<()> {
         println!("{:?}", &trade);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::fixtures::{tickers, transactions};
+    use crate::test_utils::helpers::transactions_from;
+    use rstest::*;
+
+    // not testing anything, more a showcase how to use fixtures
+    #[rstest]
+    fn test_read_trades_success(_tickers: (), transactions: Vec<Trade>) {
+        let csv_content = r#"created_at,pair,side,amount,price,fee
+1704883200,BTC/USD,BUY,1.0,40000.00,7.50
+1710460800,BTC/USD,BUY,3,20000.00,10.00"#;
+        let result = transactions_from(csv_content);
+        assert_eq!(transactions, result);
+    }
+
+    // #[test]
+    // fn test_read_trades_empty_file() {
+    //     let temp_dir = TempDir::new().unwrap();
+    //     let csv_content = "symbol,quantity,price,date\n";
+
+    //     create_test_csv(&temp_dir, "empty", csv_content);
+    //     let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //     let result = read_trades_from_csv("empty", settings);
+
+    //     assert!(result.is_ok());
+    //     let trades = result.unwrap();
+    //     assert_eq!(trades.len(), 0);
+    // }
+
+    //     #[test]
+    //     fn test_read_trades_file_not_found() {
+    //         let temp_dir = TempDir::new().unwrap();
+    //         let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //         let result = read_trades_from_csv("nonexistent", settings);
+
+    //         assert!(result.is_err());
+    //     }
+
+    //     #[test]
+    //     fn test_read_trades_invalid_csv_format() {
+    //         let temp_dir = TempDir::new().unwrap();
+    //         let csv_content = r#"symbol,quantity,price,date
+    // AAPL,not_a_number,150.50,2024-01-15"#;
+
+    //         create_test_csv(&temp_dir, "invalid", csv_content);
+    //         let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //         let result = read_trades_from_csv("invalid", settings);
+
+    //         assert!(result.is_err());
+    //     }
+
+    //     #[test]
+    //     fn test_read_trades_missing_columns() {
+    //         let temp_dir = TempDir::new().unwrap();
+    //         let csv_content = r#"symbol,quantity
+    // AAPL,100"#;
+
+    //         create_test_csv(&temp_dir, "missing_cols", csv_content);
+    //         let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //         let result = read_trades_from_csv("missing_cols", settings);
+
+    //         assert!(result.is_err());
+    //     }
+
+    //     #[test]
+    //     fn test_read_trades_with_special_characters() {
+    //         let temp_dir = TempDir::new().unwrap();
+    //         let csv_content = r#"symbol,quantity,price,date
+    // "AAPL, Inc",100,150.50,2024-01-15"#;
+
+    //         create_test_csv(&temp_dir, "special", csv_content);
+    //         let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //         let result = read_trades_from_csv("special", settings);
+
+    //         // Should handle CSV escaping properly
+    //         assert!(result.is_ok());
+    //     }
+
+    //     #[test]
+    //     fn test_read_trades_large_file() {
+    //         let temp_dir = TempDir::new().unwrap();
+    //         let mut csv_content = String::from("symbol,quantity,price,date\n");
+
+    //         // Generate 1000 trades
+    //         for i in 0..1000 {
+    //             csv_content.push_str(&format!("SYM{},100,150.50,2024-01-15\n", i));
+    //         }
+
+    //         create_test_csv(&temp_dir, "large", &csv_content);
+    //         let settings = create_test_settings(temp_dir.path().to_path_buf());
+
+    //         let result = read_trades_from_csv("large", settings);
+
+    //         assert!(result.is_ok());
+    //         let trades = result.unwrap();
+    //         assert_eq!(trades.len(), 1000);
+    //     }
 }

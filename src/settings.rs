@@ -1,4 +1,4 @@
-use crate::Cli;
+use crate::cli::Cli;
 use crate::currency::QuoteCurrency;
 use anyhow::{Context, Result};
 use config::Config;

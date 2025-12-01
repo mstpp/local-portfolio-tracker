@@ -1,72 +1,13 @@
-use std::{path::PathBuf, str::FromStr};
-
-// #![allow(dead_code)]
 use anyhow::Result;
-use clap::{Parser, Subcommand, builder::ValueParser};
-use currency::init_tickers_from_csv;
-use rust_decimal::Decimal;
-use settings::Settings;
-mod add_tx;
-mod csv;
-mod currency;
-mod portfolio_file;
-mod quote;
-mod report;
-mod settings;
-mod trade;
-mod trading_pair;
-
-/// CSV Portfolio Tracker
-///
-/// A command-line tool to manage CSV-based investment portfolios, calculate PnL,
-/// and generate performance reports.
-#[derive(Debug, Clone, Parser)]
-pub struct Cli {
-    #[command(subcommand)]
-    commands: Cmd,
-    #[arg(short, long)]
-    portfolio_dir: Option<String>,
-}
-
-#[derive(Debug, Clone, Subcommand)]
-enum Cmd {
-    /// List all portfolios
-    #[command(visible_aliases = ["l", "ls"])]
-    List,
-    /// Create new portfolio
-    #[command(alias = "n")]
-    New {
-        #[arg(short, long)]
-        name: String,
-    },
-    /// Show all transactions from portfolio
-    #[command(alias = "s")]
-    Show {
-        #[arg(short, long)]
-        name: String,
-    },
-    /// Report portfolio PnL
-    #[command(alias = "r")]
-    Report {
-        #[arg(short, long)]
-        name: String,
-    },
-    /// Add transaction to portfolio
-    AddTx {
-        #[arg(short, long)]
-        name: String,
-        #[arg(short, long)]
-        ticker: String,
-        #[arg(long)]
-        side: String, // BUY or SELL
-        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
-        qty: Decimal,
-        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
-        price: Decimal,
-        #[arg(short, long, value_parser = ValueParser::new(Decimal::from_str_exact))]
-        fee: Decimal,
-    },
-}
+use clap::Parser;
+use portfolio_tracker::add_tx;
+use portfolio_tracker::cli::{Cli, Cmd};
+use portfolio_tracker::csv;
+use portfolio_tracker::currency::init_tickers_from_csv;
+use portfolio_tracker::portfolio_file;
+use portfolio_tracker::report;
+use portfolio_tracker::settings::Settings;
+use std::{path::PathBuf, str::FromStr};
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
