@@ -1,11 +1,67 @@
-use anyhow::Result;
+use anyhow::{Result, anyhow};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::fmt;
 use std::path::PathBuf;
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 pub static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
+
+pub const FIAT: &[&str] = &["USD", "EUR", "CAD"]; // TODO extend
+pub const STABLE: &[&str] = &["USDC", "USDT", "USDS", "DAI", "USDE"]; // TODO extend 
+pub static CRYPTO: LazyLock<HashSet<&str>> = LazyLock::new(|| {
+    // TODO extend and automate generation
+    HashSet::from([
+        "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "BCH", "LINK", "HYPE", "LEO",
+        "WETH", "XLM", "XMR", "SUI", "AVAX", "LTC", "HBAR", "ZEC", "SHIB", "CRO", "TON", "DOT",
+        "UNI", "MNT", "AAVE",
+    ])
+});
+
+// Currency section
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct Currency {
+    pub ticker: String, // TODO dedicated type?
+    pub currency_type: CurrencyType,
+}
+
+impl Currency {
+    /// USD is the base currency
+    pub fn is_usd(&self) -> bool {
+        self.ticker.as_str() == "USD"
+    }
+
+    pub fn from_ticker(s: &str) -> Result<Self> {
+        Ok(Currency {
+            ticker: normalize_ticker(s),
+            // TODO rm implicit ticker validation
+            currency_type: CurrencyType::from_ticker(s)?,
+        })
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CurrencyType {
+    Crypto,
+    Fiat,
+    StableCoin,
+}
+
+impl CurrencyType {
+    pub fn from_ticker(s: &str) -> Result<Self> {
+        let t = normalize_ticker(s);
+        if FIAT.contains(&t.as_str()) {
+            return Ok(CurrencyType::Fiat);
+        } else if STABLE.contains(&t.as_str()) {
+            return Ok(CurrencyType::StableCoin);
+        } else if CRYPTO.contains(&t.as_str()) {
+            return Ok(CurrencyType::Crypto);
+        } else {
+            Err(anyhow!("unsuported ticker {}", t))
+        }
+    }
+}
+// Currency section end
 
 #[derive(Deserialize)]
 struct CsvRow {

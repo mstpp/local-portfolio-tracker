@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-use crate::currency::Ticker;
 use crate::trade::{Side, Trade};
 use crate::trading_pair::TradingPair;
 use anyhow::Result;
@@ -44,7 +43,7 @@ impl PairPosition {
                 Side::Sell => {
                     if tx.amount > holding {
                         return Err(anyhow::Error::msg(format!(
-                            "sell amount ({}) bigger than holdings: {}",
+                            "sell amount bigger than holdings: {} > {}",
                             &tx.amount, &holding
                         )));
                     } else {
@@ -63,23 +62,11 @@ impl PairPosition {
     }
 }
 
-// Position for a specific ticker,
-// calculated in QuoteCurrency defined in settings
-#[derive(Debug)]
-pub struct Position {
-    pub ticker: Ticker,
-    pub size: Decimal,
-}
-
-#[derive(Debug)]
-pub struct Portfolio {
-    positions: Vec<Position>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::currency::QuoteCurrency;
+    use crate::currency::Ticker;
     use crate::test_utils::fixtures::{tickers, transactions};
     use rstest::*;
 
@@ -146,14 +133,37 @@ mod tests {
             assert_eq!(pair_pos.average_price, dec!(40_000));
         }
 
-        #[test]
-        fn test_invalid_tx_sell_more_than_position() {
-            assert!(true);
+        #[rstest]
+        fn test_invalid_tx_sell_more_than_position(_tickers: ()) {
+            let csv_data = r#"created_at,pair,side,amount,price,fee
+1704883200,BTC/USD,BUY,1.0,10000.00,7.50
+1704883201,BTC/USD,SELL,2.0,10000.00,7.50"#;
+            let tx: Vec<Trade> = transactions_from(csv_data);
+            let mut pair_pos = btc_usd_pair_pos();
+
+            let err = pair_pos
+                .from_trades(tx)
+                .expect_err("Should fail when selling more than holdings");
+
+            assert!(
+                err.to_string().contains("sell amount bigger than holdings"),
+                "Expected oversell error, got: {}",
+                err
+            );
         }
 
-        #[test]
-        fn test_invalid_pair() {
-            assert!(true);
+        #[rstest]
+        fn test_tx_sell(_tickers: ()) {
+            let csv_data = r#"created_at,pair,side,amount,price,fee
+1704883200,BTC/USD,BUY,1.0,10000.00,7.50
+1704883201,BTC/USD,SELL,1.0,11000.00,7.50"#;
+            let tx: Vec<Trade> = transactions_from(csv_data);
+            let mut pair_pos = btc_usd_pair_pos();
+
+            let res = pair_pos.from_trades(tx);
+
+            assert!(res.is_ok());
+            assert_eq!(pair_pos.holdings, dec!(0));
         }
     }
 }

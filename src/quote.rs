@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 /// Getting quotes from coingecko api
 /// data/coingecko.csv table is holding (id, symbol, name) required for the coingecko API
 /// *name is not actually required
@@ -9,6 +8,24 @@ use std::collections::HashMap;
 const COINGECKO_TAB: &str = "data/coingecko.csv";
 const CG_QUOTE_USD_API: &str =
     "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd";
+
+pub mod tmp {
+    use crate::currency::Currency;
+    use rust_decimal::{Decimal, dec};
+
+    // TODO cache coingecko quotes
+    pub fn quote_usd(currency: &Currency) -> Decimal {
+        let tick = currency.ticker.as_str();
+        let res = match tick {
+            "BTC" => dec!(10_000),
+            "ETC" => dec!(1_000),
+            "SOL" => dec!(100),
+            "ADA" => dec!(0.1),
+            _ => dec!(1),
+        };
+        res
+    }
+}
 
 // needed for deserialization of api return price, which is in format
 // {"bitcoin":{"usd":109509},"ethereum":{"usd":3885.46}
@@ -48,7 +65,8 @@ pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>> {
 struct Coin {
     id: String,
     symbol: String,
-    name: String, // TODO not used (dead code)
+    #[allow(dead_code)]
+    name: String,
 }
 
 fn to_ids(tickers: &[String]) -> anyhow::Result<Vec<String>> {
