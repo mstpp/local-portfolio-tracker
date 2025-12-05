@@ -17,10 +17,10 @@ pub mod tmp {
     pub fn quote_usd(currency: &Currency) -> Decimal {
         let tick = currency.ticker.as_str();
         let res = match tick {
-            "BTC" => dec!(10_000),
-            "ETC" => dec!(1_000),
-            "SOL" => dec!(100),
-            "ADA" => dec!(0.1),
+            "BTC" => dec!(100_000),
+            "ETC" => dec!(5_000),
+            "SOL" => dec!(200),
+            "ADA" => dec!(0.4),
             _ => dec!(1),
         };
         res

@@ -1,9 +1,11 @@
-use crate::currency::Currency;
+use crate::currency::{Currency, CurrencyType, QuoteCurrency};
 use crate::quote::tmp::quote_usd;
+use crate::trade::Trade;
 use crate::tx::Tx;
 use anyhow::Result;
 use rust_decimal::{Decimal, dec};
 use std::collections::HashMap;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Portfolio {
@@ -74,6 +76,41 @@ impl Portfolio {
         buy_pos.cost_base += cost_basis_sold;
 
         // self.transactions.push(tx);
+
+        Ok(())
+    }
+
+    pub fn from_csv<P: AsRef<Path>>(path: P) -> Result<Self> {
+        let mut pf = Portfolio::new();
+        let mut reader = csv::Reader::from_path(path)?;
+
+        for result in reader.deserialize::<Trade>() {
+            let trade = result?;
+            // TODO temp: if buy in USD tx, auto deposit
+            if trade.pair.quote == QuoteCurrency::Usd {
+                let amount = trade.amount * trade.price + trade.fee;
+                pf.deposit(Currency::from_ticker("USD")?, amount)?;
+            }
+            pf.add_tx(trade.to_tx()?)?;
+        }
+
+        Ok(pf)
+    }
+
+    pub fn print_unrealized_pnl<P: AsRef<Path>>(path: P) -> Result<()> {
+        let pf = Portfolio::from_csv(path)?;
+
+        for (currency, position) in pf.positions.iter() {
+            if currency.currency_type == CurrencyType::Crypto {
+                println!("{}", currency.ticker);
+                println!(
+                    "{} PnL: {:.2} %",
+                    position.balance,
+                    position.balance * quote_usd(currency)
+                        - position.cost_base / position.cost_base
+                );
+            }
+        }
 
         Ok(())
     }

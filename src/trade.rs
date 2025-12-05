@@ -1,5 +1,7 @@
 // #![allow(dead_code)]
+use crate::currency::Currency;
 use crate::trading_pair::TradingPair;
+use crate::tx::Tx;
 use anyhow::Result;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -30,6 +32,25 @@ pub struct Trade {
     pub price: Decimal,
     #[serde(deserialize_with = "positive_decimal")] // TODO accept fee=0.0
     pub fee: Decimal,
+}
+
+impl Trade {
+    pub fn to_tx(&self) -> Result<Tx> {
+        match self.side {
+            Side::Buy => Ok(Tx {
+                buy: Currency::from_ticker(&self.pair.base.id)?,
+                buy_size: self.amount,
+                sell: Currency::from_ticker(&self.pair.quote.to_string())?,
+                sell_size: self.amount * self.price + self.fee,
+            }),
+            Side::Sell => Ok(Tx {
+                buy: Currency::from_ticker(&self.pair.quote.to_string())?,
+                buy_size: self.amount * self.price - self.fee,
+                sell: Currency::from_ticker(&self.pair.base.id)?,
+                sell_size: self.amount,
+            }),
+        }
+    }
 }
 
 fn positive_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>

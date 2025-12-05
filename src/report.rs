@@ -1,8 +1,10 @@
 // #![allow(dead_code)]
 use crate::csv::read_trades_from_csv;
+use crate::portfolio::Portfolio;
+use crate::portfolio_file::path_from_name;
 use crate::settings::Settings;
 use crate::trade::{Side, Trade};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rust_decimal::Decimal;
 use rust_decimal::dec;
 use rust_decimal::prelude::FromPrimitive;
@@ -39,7 +41,7 @@ fn calc_holdings(book: &mut Book, tx: &Trade) {
 
 pub fn show_holdings(name: &str, settings: Rc<Settings>) -> Result<()> {
     let mut holdings: Book = HashMap::new();
-    let trades: Vec<Trade> = read_trades_from_csv(&name, settings).unwrap();
+    let trades: Vec<Trade> = read_trades_from_csv(&name, settings.clone()).unwrap();
     for tx in trades {
         calc_holdings(&mut holdings, &tx);
     }
@@ -69,6 +71,10 @@ pub fn show_holdings(name: &str, settings: Rc<Settings>) -> Result<()> {
 
     println!();
     println!("Total PnL USD: {total_pnl}");
+
+    // Portfolio processing TODO
+    let pathbuf = path_from_name(name, settings).context("Failed to resolve portfolio path")?;
+    Portfolio::print_unrealized_pnl(pathbuf)?;
 
     Ok(())
 }
