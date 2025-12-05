@@ -1,10 +1,8 @@
 use anyhow::Result;
 use clap::Parser;
-use portfolio_tracker::add_tx;
 use portfolio_tracker::cli::{Cli, Cmd};
 use portfolio_tracker::csv;
 use portfolio_tracker::currency::init_tickers_from_csv;
-use portfolio_tracker::portfolio_file;
 use portfolio_tracker::report;
 use portfolio_tracker::settings::Settings;
 use std::{path::PathBuf, str::FromStr};
@@ -18,10 +16,10 @@ fn main() -> Result<()> {
 
     match &cli.commands {
         Cmd::List => {
-            portfolio_file::print_list(settings)?;
+            csv::print_list(settings)?;
         }
         Cmd::New { name } => {
-            portfolio_file::new(name.as_str(), settings)?;
+            csv::new(name.as_str(), settings)?;
         }
         Cmd::Show { name } => {
             csv::show_trades(name, settings)?; // display only what is in the CSV file
@@ -37,7 +35,7 @@ fn main() -> Result<()> {
             price,
             fee,
         } => {
-            add_tx::add_tx(name, ticker, side, *qty, *price, *fee, settings)?;
+            csv::tx_to_csv(name, ticker, side, *qty, *price, *fee, settings)?;
         }
     }
 
