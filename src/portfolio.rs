@@ -1,11 +1,12 @@
 use crate::currency::{Currency, CurrencyType, QuoteCurrency};
-use crate::quote::tmp::quote_usd;
+use crate::quote::quote_usd;
 use crate::trade::Trade;
 use crate::tx::Tx;
 use anyhow::Result;
 use rust_decimal::{Decimal, dec};
 use std::collections::HashMap;
 use std::path::Path;
+use thousands::Separable;
 
 #[derive(Debug)]
 pub struct Portfolio {
@@ -33,7 +34,7 @@ impl Portfolio {
         if currency == Currency::from_ticker("USD").unwrap() {
             pos.cost_base += amount;
         } else {
-            pos.cost_base += amount * quote_usd(&currency); // get real quote TODO
+            pos.cost_base += amount * quote_usd(&currency)?; // get real quote TODO
         }
 
         Ok(())
@@ -97,20 +98,70 @@ impl Portfolio {
         Ok(pf)
     }
 
+    // +--------+---------+------------+------------+---------+
+    // | Ticker | Balance | Cost Base  | Avg Price  | PnL %   |
+    // +--------+---------+------------+------------+---------+
+    // | ETH    | 11.5    | $42,555.75 | $3,700.50  | -18.20% |
+    // +--------+---------+------------+------------+---------+
+    // | BTC    | 3.5     | $87,515.31 | $25,004.38 | 257.50% |
+    // +--------+---------+------------+------------+---------+
+    // =================================
+    // Portfolio:      $347_681.69
+    // Total PnL:      $217_610.63
+    // Total PnL:      167.30%
+    // =================================
     pub fn print_unrealized_pnl<P: AsRef<Path>>(path: P) -> Result<()> {
         let pf = Portfolio::from_csv(path)?;
 
+        let mut total_cost_base = dec!(0);
+        let mut total_balance = dec!(0);
+
+        use prettytable::{Table, row};
+
+        let mut table = Table::new();
+        table.add_row(row!["Ticker", "Balance", "Cost Base", "Avg Price", "PnL %"]);
+
         for (currency, position) in pf.positions.iter() {
             if currency.currency_type == CurrencyType::Crypto {
-                println!("{}", currency.ticker);
-                println!(
-                    "{} PnL: {:.2} %",
-                    position.balance,
-                    position.balance * quote_usd(currency)
-                        - position.cost_base / position.cost_base
-                );
+                let avg_price = position.cost_base / position.balance;
+                let current_balance = position.balance * quote_usd(currency)?;
+
+                total_balance += current_balance;
+                total_cost_base += position.cost_base;
+
+                let pnl_percent =
+                    ((current_balance - position.cost_base) / position.cost_base) * dec!(100);
+
+                table.add_row(row![
+                    currency.ticker,
+                    position.balance.round_dp(2),
+                    format!("${}", position.cost_base.round_dp(2).separate_with_commas()),
+                    format!("${}", avg_price.round_dp(2).separate_with_commas()),
+                    format!("{:.2}%", pnl_percent)
+                ]);
             }
         }
+
+        table.printstd();
+
+        let total_pnl_percent = ((total_balance - total_cost_base) / total_cost_base) * dec!(100);
+
+        println!("=================================");
+        println!(
+            "Portfolio:\t${}",
+            total_balance.round_dp(2).separate_with_underscores()
+        );
+        println!(
+            "Total PnL:\t${}",
+            (total_balance - total_cost_base)
+                .round_dp(2)
+                .separate_with_underscores()
+        );
+        println!(
+            "Total PnL:\t{}%",
+            total_pnl_percent.round_dp(2).separate_with_underscores()
+        );
+        println!("=================================");
 
         Ok(())
     }
@@ -173,7 +224,7 @@ mod tests {
     #[rstest]
     fn test_deposit_sets_initial_cost_basis(portfolio_with_10_btc: Portfolio) {
         let pos = portfolio_with_10_btc.positions.get(&BTC).unwrap();
-        let btc_val = dec!(10) * quote_usd(&BTC);
+        let btc_val = dec!(10) * quote_usd(&BTC).unwrap();
         assert_eq!(pos.cost_base, btc_val);
     }
 
