@@ -88,6 +88,6 @@ impl TestContext {
             .success()
             .code(0)
             .stderr(predicate::str::is_empty())
-            .stdout(predicate::str::contains("Total PnL USD:"));
+            .stdout(predicate::str::contains("Total PnL:"));
     }
 }

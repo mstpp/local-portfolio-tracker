@@ -1,30 +1,51 @@
-/// Getting quotes from coingecko api
-/// data/coingecko.csv table is holding (id, symbol, name) required for the coingecko API
-/// *name is not actually required
-use anyhow::{Context, Result, anyhow};
+use crate::currency::{CRYPTO, Currency};
+use anyhow::{Context, Ok, Result, anyhow};
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::sync::{LazyLock, Mutex};
+use std::time::{Duration, Instant};
 
-const COINGECKO_TAB: &str = "data/coingecko.csv";
-const CG_QUOTE_USD_API: &str =
+static QUOTE_CACHE: LazyLock<Mutex<Option<QuoteCache>>> = LazyLock::new(|| Mutex::new(None));
+const CACHE_DURATION: Duration = Duration::from_secs(60);
+const GECKO_TICKER_IDS: &str = "data/coingecko.csv";
+const GECKO_QUOTE_USD: &str =
     "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd";
 
-pub mod tmp {
-    use crate::currency::Currency;
-    use rust_decimal::{Decimal, dec};
+struct QuoteCache {
+    quotes: HashMap<String, f64>,
+    last_updated: Instant,
+}
 
-    // TODO cache coingecko quotes
-    pub fn quote_usd(currency: &Currency) -> Decimal {
-        let tick = currency.ticker.as_str();
-        let res = match tick {
-            "BTC" => dec!(100_000),
-            "ETC" => dec!(5_000),
-            "SOL" => dec!(200),
-            "ADA" => dec!(0.4),
-            _ => dec!(1),
-        };
-        res
+fn get_cached_quotes() -> Result<HashMap<String, f64>> {
+    let mut cache = QUOTE_CACHE.lock().unwrap();
+
+    // Check if cache is valid
+    let needs_refresh = cache
+        .as_ref()
+        .map(|c| c.last_updated.elapsed() >= CACHE_DURATION)
+        .unwrap_or(true);
+
+    if needs_refresh {
+        // Fetch fresh quotes
+        let quotes = get_quotes(&*CRYPTO)?;
+        *cache = Some(QuoteCache {
+            quotes: quotes.clone(),
+            last_updated: Instant::now(),
+        });
+        Ok(quotes)
+    } else {
+        // Return cached quotes
+        Ok(cache.as_ref().unwrap().quotes.clone())
     }
+}
+
+pub fn quote_usd(currency: &Currency) -> Result<Decimal> {
+    let quotes = get_cached_quotes()?;
+    let quote = quotes
+        .get(&currency.ticker)
+        .ok_or(anyhow!("quote missing"))?;
+    Ok(Decimal::from_f64_retain(*quote).ok_or(anyhow!("can't decimal from f64"))?)
 }
 
 // needed for deserialization of api return price, which is in format
@@ -40,7 +61,14 @@ struct Price {
 /// Coingecko API accepts ids, while we are using short tickers elsewhere
 /// that is why translation from ticker to id is required
 /// e.g ticker: BTC -> id: bitcoin
-pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>> {
+pub fn get_quotes<I, S>(ticks: I) -> Result<HashMap<String, f64>>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+{
+    // Convert input to Vec<String> for processing
+    let tickers: Vec<String> = ticks.into_iter().map(|s| s.as_ref().to_string()).collect();
+
     // get coingecko coin ids from tickers from coingecko csv table
     let ids = to_ids(&tickers)?;
 
@@ -49,7 +77,7 @@ pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>> {
     let id_ticker_hm: HashMap<String, String> = ids.clone().into_iter().zip(tickers).collect();
 
     // API endpoint URL with comma separated ids
-    let url = CG_QUOTE_USD_API.replace("{}", &ids.join(","));
+    let url = GECKO_QUOTE_USD.replace("{}", &ids.join(","));
     let res = reqwest::blocking::get(url)?.json::<HashMap<String, Price>>()?;
 
     // need to convert back ids to tickers
@@ -61,21 +89,24 @@ pub fn get_quotes(tickers: Vec<String>) -> Result<HashMap<String, f64>> {
     Ok(quotes_hm)
 }
 
+/// Getting quotes from coingecko api
+/// data/coingecko.csv table is holding (id, symbol, name) required for the coingecko API
+/// *name is not actually required
 #[derive(Debug, Deserialize)]
-struct Coin {
-    id: String,
-    symbol: String,
+struct CsvRow {
+    id: String,     // long id, e.g. bitcoin, ethereum, etc.
+    symbol: String, // short ticker
     #[allow(dead_code)]
     name: String,
 }
 
-fn to_ids(tickers: &[String]) -> anyhow::Result<Vec<String>> {
-    let mut reader = csv::Reader::from_path(COINGECKO_TAB)
-        .with_context(|| format!("opening {}", COINGECKO_TAB))?;
+fn to_ids(tickers: &[String]) -> Result<Vec<String>> {
+    let mut reader = csv::Reader::from_path(GECKO_TICKER_IDS)
+        .with_context(|| format!("opening {}", GECKO_TICKER_IDS))?;
 
     let symbol_to_id: HashMap<String, String> = reader
         .deserialize()
-        .collect::<Result<Vec<Coin>, _>>() // csv::Error -> anyhow::Error via ?
+        .collect::<Result<Vec<CsvRow>, _>>() // csv::Error -> anyhow::Error via ?
         .context("parsing coins CSV")?
         .into_iter()
         .map(|coin| (coin.symbol.to_ascii_uppercase(), coin.id))
@@ -94,6 +125,10 @@ fn to_ids(tickers: &[String]) -> anyhow::Result<Vec<String>> {
 
     Ok(ids)
 }
+
+//
+// = = = = = TEST = = = = =
+//
 
 #[cfg(test)]
 mod tests {

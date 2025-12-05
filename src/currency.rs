@@ -10,11 +10,12 @@ pub static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
 pub const FIAT: &[&str] = &["USD", "EUR", "CAD"]; // TODO extend
 pub const STABLE: &[&str] = &["USDC", "USDT", "USDS", "DAI", "USDE"]; // TODO extend 
 pub static CRYPTO: LazyLock<HashSet<&str>> = LazyLock::new(|| {
-    // TODO extend and automate generation
+    // TODO make robust to not fail if bad ticker here
     HashSet::from([
         "BTC", "ETH", "XRP", "BNB", "SOL", "TRX", "DOGE", "ADA", "BCH", "LINK", "HYPE", "LEO",
         "WETH", "XLM", "XMR", "SUI", "AVAX", "LTC", "HBAR", "ZEC", "SHIB", "CRO", "TON", "DOT",
-        "UNI", "MNT", "AAVE",
+        "UNI", "MNT", "AAVE", "TAO", "BGB", "M", "S", "OKB", "NEAR", "ASTER", "ETC", "ICP", "PI",
+        "PEPE", "RAIN", "PUMP", "ONDO", "HTX", "JLP", "KAS",
     ])
 });
 

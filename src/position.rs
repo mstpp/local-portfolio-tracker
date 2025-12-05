@@ -1,6 +1,5 @@
 #![allow(dead_code)]
-use crate::trade::{Side, Trade};
-use crate::trading_pair::TradingPair;
+use crate::trade::{Side, Trade, TradingPair};
 use anyhow::Result;
 use rust_decimal::{Decimal, dec};
 
