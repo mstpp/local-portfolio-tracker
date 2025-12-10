@@ -1,11 +1,17 @@
 use crate::currency::Currency;
 use crate::currency::{QuoteCurrency, Ticker};
+use crate::settings::Settings;
 use crate::tx::Tx;
-use anyhow::Result;
+use anyhow::{Context, Result};
+use prettytable::{Cell, Row, Table, row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
 use std::str::FromStr;
-use time::OffsetDateTime;
+use time::{OffsetDateTime, format_description};
+
+// TODO could this be replaced with serialized Trade?
+static CSV_HEADER: [&str; 6] = ["created_at", "pair", "side", "amount", "price", "fee"];
 
 /// Represents a single executed trade in a portfolio.
 ///
@@ -50,6 +56,21 @@ impl Trade {
                 sell_size: self.amount,
             }),
         }
+    }
+
+    pub fn to_table_row(&self) -> Row {
+        let datetime = self
+            .created_at
+            .format(&format_description::well_known::Rfc2822)
+            .unwrap_or_else(|_| "Invalid date".to_string());
+        row![
+            datetime,
+            self.pair,
+            self.side,
+            self.amount,
+            self.price,
+            self.fee
+        ]
     }
 }
 
@@ -185,6 +206,104 @@ impl<'de> Deserialize<'de> for TradingPair {
             quote: quote_curr,
         })
     }
+}
+
+impl fmt::Display for TradingPair {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.base, self.quote)
+    }
+}
+
+impl fmt::Display for Side {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Side::Buy => write!(f, "Buy"),
+            Side::Sell => write!(f, "Sell"),
+        }
+    }
+}
+/// Create a new trades CSV file with headers
+pub fn new(name: &str, settings: &Settings) -> Result<()> {
+    let file_path = settings.path_for(name);
+
+    let mut wtr = csv::Writer::from_path(&file_path)
+        .with_context(|| format!("Failed to create trades CSV at {:?}", &file_path))?;
+
+    // Explicitly write header
+    wtr.write_record(CSV_HEADER)?;
+    wtr.flush()?;
+
+    println!("Created trades file: {}", file_path.display());
+    Ok(())
+}
+
+/// Add new tx to csv portfolio file
+pub fn tx_to_csv(
+    portfolio: &str,
+    symbol: &str,
+    side: &str,
+    qty: Decimal,
+    price: Decimal,
+    fee: Decimal,
+    settings: &Settings,
+) -> Result<()> {
+    let tx = Trade {
+        created_at: time::OffsetDateTime::now_utc(),
+        pair: serde_plain::from_str::<TradingPair>(&symbol).unwrap(),
+        side: serde_plain::from_str::<Side>(&side).unwrap(),
+        amount: qty,
+        price: price,
+        fee: fee,
+    };
+
+    let path = settings.path_for(portfolio);
+
+    let csv_file = std::fs::OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .expect(format!("expecting csv file, but not found: {:?}", &path).as_str());
+    let mut wrt = csv::WriterBuilder::new()
+        .has_headers(false)
+        .from_writer(csv_file);
+    wrt.serialize(&tx).unwrap();
+    println!(
+        "✅ Added transaction to portfolio csv file: {:?}\n{:?}",
+        path, tx
+    );
+    Ok(())
+}
+
+pub fn read_trades_from_csv(name: &str, settings: &Settings) -> Result<Vec<Trade>> {
+    let path = settings.path_for(name);
+    let file = std::fs::File::open(&path)
+        .with_context(|| format!("Failed to open file: {}", path.display()))?;
+    let mut reader = csv::Reader::from_reader(file);
+    let trades: Vec<Trade> = reader
+        .deserialize() // returns iterator of Result<Trade, csv::Error>
+        .collect::<Result<Vec<Trade>, csv::Error>>()?;
+    Ok(trades)
+}
+
+pub fn show_trades(name: &str, settings: &Settings) -> Result<()> {
+    let path = settings.path_for(name);
+    let file = std::fs::File::open(&path)
+        .with_context(|| format!("Failed to open file: {}", path.display()))?;
+    let mut reader = csv::Reader::from_reader(file);
+
+    // prettytable
+    let mut table = Table::new();
+    let header_row = Row::new(CSV_HEADER.iter().map(|&c| Cell::new(c)).collect());
+    table.add_row(header_row);
+
+    for res in reader.deserialize() {
+        let t: Trade = res?;
+        let row = t.to_table_row();
+        table.add_row(row);
+    }
+
+    table.printstd();
+
+    Ok(())
 }
 
 #[cfg(test)]

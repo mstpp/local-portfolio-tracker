@@ -64,6 +64,6 @@ pub mod helpers {
         let file_name = "portfolio";
         create_test_csv(&temp_dir, file_name, csv_content);
         let settings = create_test_settings(temp_dir.path().to_path_buf());
-        crate::csv::read_trades_from_csv(file_name, settings).unwrap()
+        crate::trade::read_trades_from_csv(file_name, &settings).unwrap()
     }
 }

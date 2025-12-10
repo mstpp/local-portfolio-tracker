@@ -1,14 +1,13 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use clap::Parser;
 use portfolio_tracker::cli::{Cli, Cmd};
-use portfolio_tracker::csv;
 use portfolio_tracker::currency::init_tickers_from_csv;
 use portfolio_tracker::portfolio::Portfolio;
 use portfolio_tracker::settings::Settings;
+use portfolio_tracker::trade;
+use prettytable::{Table, row};
 use std::ffi::OsString;
 use std::fs::DirEntry;
-use std::io::Write;
-use std::rc::Rc;
 use std::time::SystemTime;
 use std::{path::PathBuf, str::FromStr};
 use time::OffsetDateTime;
@@ -26,10 +25,10 @@ fn main() -> Result<()> {
             list_csv_files(&settings)?;
         }
         Cmd::New { name } => {
-            new(name.as_str(), settings)?;
+            trade::new(name.as_str(), &settings)?;
         }
         Cmd::Show { name } => {
-            csv::show_trades(name, settings)?; // display only what is in the CSV file
+            trade::show_trades(name, &settings)?; // display only what is in the CSV file
         }
         Cmd::Report { name } => {
             Portfolio::print_unrealized_pnl(settings.path_for(name))?;
@@ -42,7 +41,7 @@ fn main() -> Result<()> {
             price,
             fee,
         } => {
-            csv::tx_to_csv(name, ticker, side, *qty, *price, *fee, settings)?;
+            trade::tx_to_csv(name, ticker, side, *qty, *price, *fee, &settings)?;
         }
     }
 
@@ -76,8 +75,6 @@ fn list_csv_files(settings: &Settings) -> Result<()> {
     files.sort_unstable_by_key(|(_, t)| *t);
 
     // pretty table
-    use prettytable::{Table, row};
-
     let mut table = Table::new();
     table.add_row(row!["CSV file name", "Created at"]);
 
@@ -89,21 +86,5 @@ fn list_csv_files(settings: &Settings) -> Result<()> {
 
     table.printstd();
 
-    Ok(())
-}
-
-fn new(name: &str, settings: Rc<Settings>) -> Result<()> {
-    let new_file_path: PathBuf = settings.path_for(name);
-    let mut file = std::fs::OpenOptions::new()
-        .create_new(true)
-        .write(true)
-        .open(&new_file_path)
-        .with_context(|| format!("Error while creating csv file {:?}", &new_file_path))?;
-    // write csv header
-    file.write_all("created_at,pair,side,amount,price,fee\n".as_bytes())?;
-    println!(
-        "Successfully created new file: {}",
-        new_file_path.to_str().unwrap_or("Unknown")
-    );
     Ok(())
 }
