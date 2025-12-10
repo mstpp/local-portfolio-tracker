@@ -8,7 +8,6 @@ pub struct Tx {
     pub buy_size: Decimal,
     pub sell: Currency,
     pub sell_size: Decimal,
-    // pub fee: Decimal, // sell Currency // TODO add fee mgm later
 }
 
 impl Tx {

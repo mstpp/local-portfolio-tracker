@@ -94,4 +94,8 @@ impl Settings {
 
         warnings
     }
+
+    pub fn path_for(&self, name: &str) -> PathBuf {
+        self.portfolio_dir.clone().join(name).with_extension("csv")
+    }
 }

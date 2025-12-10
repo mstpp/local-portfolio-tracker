@@ -1,11 +1,18 @@
-use anyhow::Result;
+use anyhow::{Context, Result, anyhow};
 use clap::Parser;
 use portfolio_tracker::cli::{Cli, Cmd};
 use portfolio_tracker::csv;
 use portfolio_tracker::currency::init_tickers_from_csv;
-use portfolio_tracker::report;
+use portfolio_tracker::portfolio::Portfolio;
 use portfolio_tracker::settings::Settings;
+use std::ffi::OsString;
+use std::fs::DirEntry;
+use std::io::Write;
+use std::rc::Rc;
+use std::time::SystemTime;
 use std::{path::PathBuf, str::FromStr};
+use time::OffsetDateTime;
+use time::macros::format_description;
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
@@ -16,16 +23,16 @@ fn main() -> Result<()> {
 
     match &cli.commands {
         Cmd::List => {
-            csv::print_list(settings)?;
+            list_csv_files(&settings)?;
         }
         Cmd::New { name } => {
-            csv::new(name.as_str(), settings)?;
+            new(name.as_str(), settings)?;
         }
         Cmd::Show { name } => {
             csv::show_trades(name, settings)?; // display only what is in the CSV file
         }
         Cmd::Report { name } => {
-            report::show_holdings(name, settings)?;
+            Portfolio::print_unrealized_pnl(settings.path_for(name))?;
         }
         Cmd::AddTx {
             name,
@@ -39,5 +46,64 @@ fn main() -> Result<()> {
         }
     }
 
+    Ok(())
+}
+
+// +---------------+---------------------+
+// | CSV file name | Created at          |
+// +---------------+---------------------+
+// | example.csv   | 2025-12-05 20:01:21 |
+// +---------------+---------------------+
+fn list_csv_files(settings: &Settings) -> Result<()> {
+    let mut files: Vec<(OsString, SystemTime)> = Vec::new();
+
+    for entry in settings.portfolio_dir.read_dir()? {
+        let entry: DirEntry = entry?;
+        let metadata: std::fs::Metadata = entry.metadata()?;
+
+        // Skip directories or special files
+        if !metadata.is_file() {
+            continue;
+        }
+
+        let created = metadata.created().or_else(|_| metadata.modified())?; // fallback for Unix consistency
+        let path = entry.path();
+        let name = path.file_stem().ok_or(anyhow!("err getting name"))?;
+        files.push((name.to_os_string(), created));
+    }
+
+    // Sort oldest → newest
+    files.sort_unstable_by_key(|(_, t)| *t);
+
+    // pretty table
+    use prettytable::{Table, row};
+
+    let mut table = Table::new();
+    table.add_row(row!["CSV file name", "Created at"]);
+
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    for (name, timestamp) in &files {
+        let created = OffsetDateTime::from(*timestamp);
+        table.add_row(row![name.to_string_lossy(), created.format(format)?]);
+    }
+
+    table.printstd();
+
+    Ok(())
+}
+
+fn new(name: &str, settings: Rc<Settings>) -> Result<()> {
+    let new_file_path: PathBuf = settings.path_for(name);
+    let mut file = std::fs::OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(&new_file_path)
+        .with_context(|| format!("Error while creating csv file {:?}", &new_file_path))?;
+    // write csv header
+    file.write_all("created_at,pair,side,amount,price,fee\n".as_bytes())?;
+    println!(
+        "Successfully created new file: {}",
+        new_file_path.to_str().unwrap_or("Unknown")
+    );
     Ok(())
 }

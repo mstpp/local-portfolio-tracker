@@ -170,12 +170,12 @@ impl<'de> Deserialize<'de> for TradingPair {
             return Err(serde::de::Error::custom("base can't be empty"));
         }
 
-        // only accept USD quote
-        if parts[1] != "USD" {
-            return Err(serde::de::Error::custom(
-                "accepting only USD for quote currency",
-            ));
-        }
+        // // only accept USD quote
+        // if parts[1] != "USD" {
+        //     return Err(serde::de::Error::custom(
+        //         "accepting only USD for quote currency",
+        //     ));
+        // }
 
         let base_curr = Ticker::from_str(&parts[0]).map_err(serde::de::Error::custom)?;
         let quote_curr = QuoteCurrency::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
