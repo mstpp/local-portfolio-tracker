@@ -2,7 +2,7 @@ use crate::currency::Currency;
 use crate::currency::{QuoteCurrency, Ticker};
 use crate::settings::Settings;
 use crate::tx::Tx;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use prettytable::{Cell, Row, Table, row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -228,14 +228,19 @@ impl fmt::Display for Side {
 pub fn new(name: &str, settings: &Settings) -> Result<()> {
     let file_path = settings.path_for(name);
 
+    if file_path.exists() {
+        return Err(anyhow!("File already exists: {}", file_path.display()));
+    }
+
     let mut wtr = csv::Writer::from_path(&file_path)
-        .with_context(|| format!("Failed to create trades CSV at {:?}", &file_path))?;
+        .with_context(|| format!("Failed to create trades CSV at {:?}", file_path.display()))?;
 
     // Explicitly write header
     wtr.write_record(CSV_HEADER)?;
     wtr.flush()?;
 
     println!("Created trades file: {}", file_path.display());
+
     Ok(())
 }
 
@@ -303,7 +308,11 @@ pub fn show_trades(name: &str, settings: &Settings) -> Result<()> {
         table.add_row(row);
     }
 
-    table.printstd();
+    if table.len() > 1 {
+        table.printstd();
+    } else {
+        println!("No trades found");
+    }
 
     Ok(())
 }

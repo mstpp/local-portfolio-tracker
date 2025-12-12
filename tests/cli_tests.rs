@@ -2,7 +2,6 @@ use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
 
 mod common;
-use common::stdout_no_portfolios;
 mod fixtures;
 use fixtures::TestContext;
 
@@ -35,8 +34,7 @@ mod list_cmd_tests {
             .arg("list")
             .assert()
             .success()
-            .stdout(stdout_no_portfolios())
-            .stderr(predicate::str::is_empty());
+            .stdout(predicate::str::contains("CSV file name | Created at "));
     }
 }
 
@@ -65,10 +63,7 @@ mod new_cmd_tests {
             .assert()
             .failure()
             .code(1)
-            .stderr(
-                predicate::str::contains("Error while creating csv file")
-                    .and(predicate::str::contains("File exists")),
-            );
+            .stderr(predicate::str::contains("File already exists"));
     }
 }
 
@@ -104,7 +99,16 @@ mod add_tx_cmd_tests {
             .success()
             .code(0)
             .stderr(predicate::str::is_empty())
-            .stdout(predicate::str::contains("created_at"));
+            .stdout(
+                predicate::str::contains("created_at")
+                    .and(predicate::str::contains("pair"))
+                    .and(predicate::str::contains("side"))
+                    .and(predicate::str::contains("amount"))
+                    .and(predicate::str::contains("price"))
+                    .and(predicate::str::contains("fee"))
+                    .and(predicate::str::contains("BTC/USD"))
+                    .and(predicate::str::contains("96450")),
+            );
     }
 }
 

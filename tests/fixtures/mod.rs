@@ -52,8 +52,8 @@ impl TestContext {
             .arg("list")
             .assert()
             .success()
-            .stdout(stdout_list_has(name))
-            .stderr(predicate::str::is_empty());
+            .stderr(predicate::str::is_empty())
+            .stdout(stdout_list_has(name));
     }
 
     pub fn show_empty_portfolio(&self, name: &str) {
