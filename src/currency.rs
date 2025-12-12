@@ -97,14 +97,8 @@ pub fn load_tickers_from_csv(path: PathBuf) -> Result<HashSet<String>> {
     Ok(tickers)
 }
 
-fn tickers() -> &'static HashSet<String> {
-    TICKERS
-        .get()
-        .expect("TICKERS not initialized; call init_tickers_from_csv() first")
-}
-
 pub fn is_valid_ticker(t: &str) -> bool {
-    tickers().contains(&normalize_ticker(t))
+    CRYPTO.contains(normalize_ticker(t).as_str())
 }
 
 pub fn init_tickers_from_csv(path: PathBuf) -> Result<()> {
@@ -253,12 +247,6 @@ mod tests {
             assert!(!is_valid_ticker("aaADA"));
             assert!(!is_valid_ticker(""));
             assert!(!is_valid_ticker("\t"));
-        }
-
-        #[test]
-        #[should_panic(expected = "TICKERS not initialized")]
-        fn test_panic_when_no_init() {
-            is_valid_ticker("abtc");
         }
 
         #[rstest]
