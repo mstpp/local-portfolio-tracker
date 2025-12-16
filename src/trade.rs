@@ -6,9 +6,14 @@ use anyhow::{Context, Result, anyhow};
 use prettytable::{Cell, Row, Table, row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::ffi::OsString;
 use std::fmt;
+use std::fs::DirEntry;
 use std::str::FromStr;
-use time::{OffsetDateTime, format_description};
+use std::time::SystemTime;
+use time::OffsetDateTime;
+use time::format_description;
+use time::macros::format_description;
 
 // TODO could this be replaced with serialized Trade?
 static CSV_HEADER: [&str; 6] = ["created_at", "pair", "side", "amount", "price", "fee"];
@@ -224,6 +229,48 @@ impl fmt::Display for Side {
         }
     }
 }
+
+// +---------------+---------------------+
+// | CSV file name | Created at          |
+// +---------------+---------------------+
+// | example.csv   | 2025-12-05 20:01:21 |
+// +---------------+---------------------+
+pub fn list_csv_files(settings: &Settings) -> Result<()> {
+    let mut files: Vec<(OsString, SystemTime)> = Vec::new();
+
+    for entry in settings.portfolio_dir.read_dir()? {
+        let entry: DirEntry = entry?;
+        let metadata: std::fs::Metadata = entry.metadata()?;
+
+        // Skip directories or special files
+        if !metadata.is_file() {
+            continue;
+        }
+
+        let created = metadata.created().or_else(|_| metadata.modified())?; // fallback for Unix consistency
+        let path = entry.path();
+        let name = path.file_stem().ok_or(anyhow!("err getting name"))?;
+        files.push((name.to_os_string(), created));
+    }
+
+    // Sort oldest → newest
+    files.sort_unstable_by_key(|(_, t)| *t);
+
+    // pretty table
+    let mut table = Table::new();
+    table.add_row(row!["CSV file name", "Created at"]);
+
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    for (name, timestamp) in &files {
+        let created = OffsetDateTime::from(*timestamp);
+        table.add_row(row![name.to_string_lossy(), created.format(format)?]);
+    }
+
+    table.printstd();
+
+    Ok(())
+}
+
 /// Create a new trades CSV file with headers
 pub fn new(name: &str, settings: &Settings) -> Result<()> {
     let file_path = settings.path_for(name);

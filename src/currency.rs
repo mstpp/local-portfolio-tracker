@@ -2,10 +2,9 @@ use anyhow::{Result, anyhow};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashSet;
 use std::fmt;
-use std::path::PathBuf;
-use std::sync::{LazyLock, OnceLock};
+use std::sync::LazyLock;
 
-pub static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
+// pub static TICKERS: OnceLock<HashSet<String>> = OnceLock::new();
 
 pub const FIAT: &[&str] = &["USD", "EUR", "CAD"]; // TODO extend
 pub const STABLE: &[&str] = &["USDC", "USDT", "USDS", "DAI", "USDE"]; // TODO extend 
@@ -62,58 +61,53 @@ impl CurrencyType {
         }
     }
 }
-// Currency section end
+// Currency section END
 
-#[derive(Deserialize)]
-struct CsvRow {
-    #[allow(dead_code)]
-    id: String,
-    #[serde(rename = "symbol")]
-    ticker: String,
-    #[allow(dead_code)]
-    name: String,
+pub fn is_valid_ticker(t: &str) -> bool {
+    CRYPTO.contains(normalize_ticker(t).as_str())
 }
 
 fn normalize_ticker(s: &str) -> String {
     s.trim().to_ascii_uppercase()
 }
 
-pub fn load_tickers_from_csv(path: PathBuf) -> Result<HashSet<String>> {
-    let file = std::fs::File::open(path)?;
-    let mut reader = csv::Reader::from_reader(file);
-    let mut tickers = HashSet::new();
+// #[derive(Deserialize)]
+// struct CsvRow {
+//     #[allow(dead_code)]
+//     id: String,
+//     #[serde(rename = "symbol")]
+//     ticker: String,
+//     #[allow(dead_code)]
+//     name: String,
+// }
 
-    for result in reader.deserialize::<CsvRow>() {
-        match result {
-            Ok(row) => {
-                tickers.insert(normalize_ticker(&row.ticker));
-            }
-            Err(e) => {
-                eprintln!("Failed to parse CSV row: {e}");
-            }
-        }
-    }
+// pub fn load_tickers_from_csv(path: PathBuf) -> Result<HashSet<String>> {
+//     let file = std::fs::File::open(path)?;
+//     let mut reader = csv::Reader::from_reader(file);
+//     let mut tickers = HashSet::new();
+//     for result in reader.deserialize::<CsvRow>() {
+//         match result {
+//             Ok(row) => {
+//                 tickers.insert(normalize_ticker(&row.ticker));
+//             }
+//             Err(e) => {
+//                 eprintln!("Failed to parse CSV row: {e}");
+//             }
+//         }
+//     }
+//     Ok(tickers)
+// }
 
-    Ok(tickers)
-}
-
-pub fn is_valid_ticker(t: &str) -> bool {
-    CRYPTO.contains(normalize_ticker(t).as_str())
-}
-
-pub fn init_tickers_from_csv(path: PathBuf) -> Result<()> {
-    if TICKERS.get().is_some() {
-        return Ok(());
-    }
-
-    let tickers = load_tickers_from_csv(path)?;
-
-    if TICKERS.set(tickers).is_err() {
-        println!("TICKERS already initialized, ignoring later init");
-    }
-
-    Ok(())
-}
+// pub fn init_tickers_from_csv(path: PathBuf) -> Result<()> {
+//     if TICKERS.get().is_some() {
+//         return Ok(());
+//     }
+//     let tickers = load_tickers_from_csv(path)?;
+//     if TICKERS.set(tickers).is_err() {
+//         println!("TICKERS already initialized, ignoring later init");
+//     }
+//     Ok(())
+// }
 
 #[derive(Debug, Serialize, Clone, PartialEq, Eq, Hash)]
 pub struct Ticker {
@@ -156,7 +150,6 @@ impl std::str::FromStr for Ticker {
     }
 }
 
-// QuoteCurrency implementation looks good, no changes needed
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum QuoteCurrency {
     Usd,
@@ -189,8 +182,8 @@ mod tests {
     use super::*;
     use crate::test_utils::fixtures::tickers;
     use rstest::*;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
+    // use std::io::Write;
+    // use tempfile::NamedTempFile;
 
     mod basic {
         use std::str::FromStr;
@@ -379,41 +372,38 @@ mod tests {
             assert!(result.is_err());
         }
 
-        #[test]
-        fn test_csv_with_malformed_rows() {
-            let mut file = NamedTempFile::new().unwrap();
-            writeln!(
-                file,
-                "id,symbol,name\n\
-                 bitcoin,btc,Bitcoin\n\
-                 incomplete,line\n\
-                 ethereum,eth,Ethereum"
-            )
-            .unwrap();
-            file.flush().unwrap();
+        // #[test]
+        // fn test_csv_with_malformed_rows() {
+        //     let mut file = NamedTempFile::new().unwrap();
+        //     writeln!(
+        //         file,
+        //         "id,symbol,name\n\
+        //          bitcoin,btc,Bitcoin\n\
+        //          incomplete,line\n\
+        //          ethereum,eth,Ethereum"
+        //     )
+        //     .unwrap();
+        //     file.flush().unwrap();
+        //     // Should still succeed and parse valid rows
+        //     let result = init_tickers_from_csv(file.path().to_path_buf());
+        //     assert!(result.is_ok());
+        // }
 
-            // Should still succeed and parse valid rows
-            let result = init_tickers_from_csv(file.path().to_path_buf());
-            assert!(result.is_ok());
-        }
-
-        #[test]
-        fn test_csv_with_duplicate_tickers() {
-            let mut file = NamedTempFile::new().unwrap();
-            writeln!(
-                file,
-                "id,symbol,name\n\
-                 bitcoin,btc,Bitcoin\n\
-                 bitcoin2,btc,Bitcoin Cash"
-            )
-            .unwrap();
-            file.flush().unwrap();
-
-            let result = init_tickers_from_csv(file.path().to_path_buf());
-            assert!(result.is_ok());
-
-            // Should only have one BTC entry
-            assert!(is_valid_ticker("BTC"));
-        }
+        // #[test]
+        // fn test_csv_with_duplicate_tickers() {
+        //     let mut file = NamedTempFile::new().unwrap();
+        //     writeln!(
+        //         file,
+        //         "id,symbol,name\n\
+        //          bitcoin,btc,Bitcoin\n\
+        //          bitcoin2,btc,Bitcoin Cash"
+        //     )
+        //     .unwrap();
+        //     file.flush().unwrap();
+        //     let result = init_tickers_from_csv(file.path().to_path_buf());
+        //     assert!(result.is_ok());
+        //     // Should only have one BTC entry
+        //     assert!(is_valid_ticker("BTC"));
+        // }
     }
 }

@@ -7,7 +7,7 @@ pub mod fixtures {
 
     #[fixture]
     pub fn tickers() {
-        use crate::currency::init_tickers_from_csv;
+        // use crate::currency::init_tickers_from_csv;
 
         let mut file = NamedTempFile::new().unwrap();
         writeln!(
@@ -22,7 +22,7 @@ pub mod fixtures {
         )
         .unwrap();
         file.flush().unwrap();
-        let _ = init_tickers_from_csv(file.path().to_path_buf());
+        // let _ = init_tickers_from_csv(file.path().to_path_buf());
     }
 
     #[fixture]
