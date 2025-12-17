@@ -1,12 +1,21 @@
-use crate::currency::{Currency, CurrencyType, QuoteCurrency};
+use crate::currency::{Currency, CurrencyType};
 use crate::quote::quote_usd;
-use crate::trade::Trade;
+use crate::settings::Settings;
+use crate::trade::{CSV_HEADER, parse_csv_file};
 use crate::tx::Tx;
-use anyhow::Result;
-use rust_decimal::{Decimal, dec};
+use anyhow::{Result, anyhow};
+use prettytable::{Cell, Row, Table, row};
+use rust_decimal::Decimal;
+use rust_decimal::dec;
 use std::collections::HashMap;
+use std::ffi::OsString;
+use std::fs::{DirEntry, File};
+use std::io::Write;
 use std::path::Path;
+use std::time::SystemTime;
 use thousands::Separable;
+use time::OffsetDateTime;
+use time::macros::format_description;
 
 #[derive(Debug)]
 pub struct Portfolio {
@@ -83,15 +92,15 @@ impl Portfolio {
 
     pub fn from_csv<P: AsRef<Path>>(path: P) -> Result<Self> {
         let mut pf = Portfolio::new();
-        let mut reader = csv::Reader::from_path(path)?;
+        let (csv_conf, trades) = parse_csv_file(&path)?;
 
-        for result in reader.deserialize::<Trade>() {
-            let trade = result?;
-            // TODO temp: if buy in USD tx, auto deposit
-            if trade.pair.quote == QuoteCurrency::Usd {
-                let amount = trade.amount * trade.price + trade.fee;
-                pf.deposit(Currency::from_ticker("USD")?, amount)?;
-            }
+        for trade in trades {
+            let amount = trade.amount * trade.price + trade.fee;
+            // deposit base currency (USD), so I can add tx
+            pf.deposit(
+                Currency::from_ticker(csv_conf.base_currency.as_str())?,
+                amount,
+            )?;
             pf.add_tx(trade.to_tx()?)?;
         }
 
@@ -112,6 +121,11 @@ impl Portfolio {
     // =================================
     pub fn print_unrealized_pnl<P: AsRef<Path>>(path: P) -> Result<()> {
         let pf = Portfolio::from_csv(path)?;
+
+        if pf.positions.len() == 0 {
+            println!("No positions in portfolio");
+            return Ok(());
+        }
 
         let mut total_cost_base = dec!(0);
         let mut total_balance = dec!(0);
@@ -182,6 +196,95 @@ impl Position {
             cost_base: dec!(0),
         }
     }
+}
+
+// +---------------+---------------------+
+// | CSV file name | Created at          |
+// +---------------+---------------------+
+// | example.csv   | 2025-12-05 20:01:21 |
+// +---------------+---------------------+
+pub fn list_csv_files(settings: &Settings) -> Result<()> {
+    let mut files: Vec<(OsString, SystemTime)> = Vec::new();
+
+    for entry in settings.portfolio_dir.read_dir()? {
+        let entry: DirEntry = entry?;
+        let metadata: std::fs::Metadata = entry.metadata()?;
+
+        // Skip directories or special files
+        if !metadata.is_file() {
+            continue;
+        }
+
+        let created = metadata.created().or_else(|_| metadata.modified())?; // fallback for Unix consistency
+        let path = entry.path();
+        let name = path.file_stem().ok_or(anyhow!("err getting name"))?;
+        files.push((name.to_os_string(), created));
+    }
+
+    // Sort oldest → newest
+    files.sort_unstable_by_key(|(_, t)| *t);
+
+    // pretty table
+    let mut table = Table::new();
+    table.add_row(row!["CSV file name", "Created at"]);
+
+    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+    for (name, timestamp) in &files {
+        let created = OffsetDateTime::from(*timestamp);
+        table.add_row(row![name.to_string_lossy(), created.format(format)?]);
+    }
+
+    table.printstd();
+
+    Ok(())
+}
+
+/// Display trades from the CSV file
+pub fn show_trades(name: &str, settings: &Settings) -> Result<()> {
+    let path = settings.path_for(name);
+
+    let (_, trades) = parse_csv_file(path)?;
+
+    // prettytable
+    let mut table = Table::new();
+    let header_row = Row::new(CSV_HEADER.iter().map(|&c| Cell::new(c)).collect());
+    table.add_row(header_row);
+
+    for t in trades.iter() {
+        let row = t.to_table_row();
+        table.add_row(row);
+    }
+
+    if table.len() > 1 {
+        table.printstd();
+    } else {
+        println!("No trades found");
+    }
+
+    Ok(())
+}
+
+/// Create a new trades CSV file with headers
+pub fn new(name: &str, settings: &Settings) -> Result<()> {
+    let file_path = settings.path_for(name);
+
+    if file_path.exists() {
+        return Err(anyhow!("File already exists: {}", file_path.display()));
+    }
+
+    let mut file = File::create_new(&file_path)?;
+    writeln!(file, "# base_currency: USD")?;
+
+    // let file = std::fs::OpenOptions::new().append(true).open(&file_path)?;
+    let mut wtr = csv::Writer::from_writer(file);
+
+    // Explicitly write header
+    wtr.write_record(CSV_HEADER)?;
+    wtr.flush()?;
+
+    println!("Created trades file: {}", file_path.display()); // TODO rename trades file to portfolio file
+
+    Ok(())
 }
 
 #[cfg(test)]

@@ -2,21 +2,18 @@ use crate::currency::Currency;
 use crate::currency::{QuoteCurrency, Ticker};
 use crate::settings::Settings;
 use crate::tx::Tx;
-use anyhow::{Context, Result, anyhow};
-use prettytable::{Cell, Row, Table, row};
+use anyhow::{Context, Result, bail};
+use prettytable::{Row, row};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::ffi::OsString;
 use std::fmt;
-use std::fs::DirEntry;
+use std::path::Path;
 use std::str::FromStr;
-use std::time::SystemTime;
 use time::OffsetDateTime;
 use time::format_description;
-use time::macros::format_description;
 
 // TODO could this be replaced with serialized Trade?
-static CSV_HEADER: [&str; 6] = ["created_at", "pair", "side", "amount", "price", "fee"];
+pub static CSV_HEADER: [&str; 6] = ["created_at", "pair", "side", "amount", "price", "fee"];
 
 /// Represents a single executed trade in a portfolio.
 ///
@@ -230,67 +227,6 @@ impl fmt::Display for Side {
     }
 }
 
-// +---------------+---------------------+
-// | CSV file name | Created at          |
-// +---------------+---------------------+
-// | example.csv   | 2025-12-05 20:01:21 |
-// +---------------+---------------------+
-pub fn list_csv_files(settings: &Settings) -> Result<()> {
-    let mut files: Vec<(OsString, SystemTime)> = Vec::new();
-
-    for entry in settings.portfolio_dir.read_dir()? {
-        let entry: DirEntry = entry?;
-        let metadata: std::fs::Metadata = entry.metadata()?;
-
-        // Skip directories or special files
-        if !metadata.is_file() {
-            continue;
-        }
-
-        let created = metadata.created().or_else(|_| metadata.modified())?; // fallback for Unix consistency
-        let path = entry.path();
-        let name = path.file_stem().ok_or(anyhow!("err getting name"))?;
-        files.push((name.to_os_string(), created));
-    }
-
-    // Sort oldest → newest
-    files.sort_unstable_by_key(|(_, t)| *t);
-
-    // pretty table
-    let mut table = Table::new();
-    table.add_row(row!["CSV file name", "Created at"]);
-
-    let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
-    for (name, timestamp) in &files {
-        let created = OffsetDateTime::from(*timestamp);
-        table.add_row(row![name.to_string_lossy(), created.format(format)?]);
-    }
-
-    table.printstd();
-
-    Ok(())
-}
-
-/// Create a new trades CSV file with headers
-pub fn new(name: &str, settings: &Settings) -> Result<()> {
-    let file_path = settings.path_for(name);
-
-    if file_path.exists() {
-        return Err(anyhow!("File already exists: {}", file_path.display()));
-    }
-
-    let mut wtr = csv::Writer::from_path(&file_path)
-        .with_context(|| format!("Failed to create trades CSV at {:?}", file_path.display()))?;
-
-    // Explicitly write header
-    wtr.write_record(CSV_HEADER)?;
-    wtr.flush()?;
-
-    println!("Created trades file: {}", file_path.display());
-
-    Ok(())
-}
-
 /// Add new tx to csv portfolio file
 pub fn tx_to_csv(
     portfolio: &str,
@@ -338,30 +274,55 @@ pub fn read_trades_from_csv(name: &str, settings: &Settings) -> Result<Vec<Trade
     Ok(trades)
 }
 
-pub fn show_trades(name: &str, settings: &Settings) -> Result<()> {
-    let path = settings.path_for(name);
-    let file = std::fs::File::open(&path)
-        .with_context(|| format!("Failed to open file: {}", path.display()))?;
-    let mut reader = csv::Reader::from_reader(file);
+#[derive(Debug)]
+pub struct CsvConfig {
+    pub base_currency: String,
+}
 
-    // prettytable
-    let mut table = Table::new();
-    let header_row = Row::new(CSV_HEADER.iter().map(|&c| Cell::new(c)).collect());
-    table.add_row(header_row);
+impl Default for CsvConfig {
+    fn default() -> Self {
+        Self {
+            base_currency: "USD".to_string(),
+        }
+    }
+}
 
-    for res in reader.deserialize() {
-        let t: Trade = res?;
-        let row = t.to_table_row();
-        table.add_row(row);
+fn parse_csv_config(line: &str) -> Result<CsvConfig> {
+    let curr_sufix = line.strip_prefix("# base_currency:").context(format!(
+        "expecting comment line to start with '# base_currency:'"
+    ))?;
+
+    let currency = curr_sufix.trim();
+
+    if currency.is_empty() {
+        bail!("empty currency parsing");
     }
 
-    if table.len() > 1 {
-        table.printstd();
+    Ok(CsvConfig {
+        base_currency: currency.to_ascii_uppercase(),
+    })
+}
+
+fn extract_csv_config(input_data: &str) -> Result<(CsvConfig, &str)> {
+    let first_line = input_data.lines().next().context("no data")?;
+
+    if let Ok(conf) = parse_csv_config(first_line) {
+        let remain = input_data
+            .split_once("\n")
+            .map(|(_, rem)| rem)
+            .context("no remaining csv data")?;
+        Ok((conf, remain))
     } else {
-        println!("No trades found");
+        Ok((CsvConfig::default(), input_data))
     }
+}
 
-    Ok(())
+pub fn parse_csv_file<T: AsRef<Path>>(path: T) -> Result<(CsvConfig, Vec<Trade>)> {
+    let input_data = std::fs::read_to_string(path)?;
+    let (config, data) = extract_csv_config(input_data.as_str())?;
+    let mut reader = csv::ReaderBuilder::new().from_reader(data.as_bytes());
+    let trades: Vec<Trade> = reader.deserialize().collect::<Result<_, csv::Error>>()?;
+    Ok((config, trades))
 }
 
 #[cfg(test)]

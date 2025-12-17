@@ -1,30 +1,84 @@
 # E2E test scenarios 
 
-1.	Bootstrap / Help Output
-Verify --help and -h show all commands, flags, argument types, and examples without panics.
-2.	List Portfolios (none yet)
-Run list on a fresh workspace; prints an empty state message and exits 0.
-3.	Create New Portfolio (happy path)
-new <name> creates directory/files; rerun list shows the new portfolio.
-4.	Create Portfolio That Already Exists
-Second new <name> fails gracefully with a clear “File exists” error and non-zero exit.
-5.	Show Trades on Empty Portfolio
-show <name> on a newly created portfolio renders headers and “no trades” message.
-6.	Add BUY Transaction (simple)
+## Cli tests 
+### Help 
+
+```bash
+cargo t --test help_cmd_tests
+```
+
+- [x] Help `--help` and `help` (long), validate complete exact stdout
+- [x] Help `-h` (short) command, validate complete exact stdout
+- [] Long help for list command
+- [] Short help for list command
+- [] Long help for new command
+- [] Short help for new command
+- [] Long help for show command
+- [] Short help for show command
+- [] Long help for report command
+- [] Short help for report command
+- [] Long help for add-tx command
+- [] Short help for add-tx command
+
+### List Portfolios
+
+```bash
+cargo t --test list_cmd_tests
+```
+
+- [x] List Portfolios (none yet) - prints an empty state, header only message and exits 0, exact stdout match
+- [] List when file is not a CSV file - should be ignored 
+- [] List after created empty CSV file - should be displayed w/o csv extension
+
+### Create New Portfolio
+
+
+```bash
+cargo t --test new_cmd_tests
+```
+
+- [] Create New Portfolio (happy path)
+	- new <name> creates directory/files,
+	- rerun list shows the new portfolio,
+	- content: it has correct first line comment
+	- content: it has correct header
+- [x] Create Portfolio That Already Exists
+Second new <name> fails gracefully with a clear "File exists" error and non-zero exit.
+
+### Show Trades
+
+```bash
+cargo t --test show_cmd_tests
+```
+
+- [x] Show Trades on Empty Portfolio
+show <name> on a newly created portfolio renders headers and "no trades" message.
+
+### Add Tx
+
+```bash
+cargo t --test add_tx_cmd_tests
+```
+
+- [x] Add BUY Transaction (simple)
 add-tx --name <name> --ticker TICK --side buy --qty 10 --price 5 --fee 0.5 appends a row; show displays it correctly.
-7.	Report Holdings (single ticker)
-report <name> computes quantities, average cost, unrealized PnL, and fees correctly for one ticker.
-
-
-
-
-
-	7.	Add SELL Transaction (simple)
+- [] Add SELL Transaction (simple)
 Add a sell; show reflects both rows in correct chronological order and formatting.
-	8.	Add Multiple Transactions / Aggregation Order
+- [] Add Multiple Transactions / Aggregation Order
 Add several buys/sells out of chronological order; ensure persisted order or normalized sort is as specified by the app.
-	10.	Report Holdings (multiple tickers)
+
+### Report
+
+```bash
+cargo t --test report_cmd_tests
+```
+
+- [x] Report Holdings (single ticker)
+report <name> computes quantities, average cost, unrealized PnL, and fees correctly for one ticker.
+- [] Report Holdings (multiple tickers)
 Mix of tickers; verify per-ticker aggregation and a portfolio total line (if supported).
+
+
 	11.	Decimal Parsing & Precision
 Large and fractional qty/price/fee (e.g., 0.000123, 1234567.89); values are stored and reported without rounding errors.
 	12.	Validation: Zero/Negative Qty or Price

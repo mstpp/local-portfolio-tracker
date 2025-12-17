@@ -1,6 +1,5 @@
-//#[path = "common.rs"] //this is when no dir structure,
-// not playing well with analyzer, it sees dead code
-// mod common;
+#[path = "common.rs"] // when no dir structure, analyzer sees dead code
+mod common;
 use crate::common::stdout_list_has;
 
 use assert_cmd::cargo::cargo_bin_cmd;
@@ -11,6 +10,7 @@ pub struct TestContext {
     temp_dir: TempDir,
 }
 
+#[allow(dead_code)]
 impl TestContext {
     pub fn new() -> Self {
         let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -24,11 +24,15 @@ impl TestContext {
     }
 
     pub fn create_portfolio(&self, name: &str) {
-        self.cmd()
+        let p = self
+            .cmd()
             .args(["new", "--name", name])
             .assert()
             .success()
+            .stdout(predicate::str::contains("Created trades file: "))
             .stderr(predicate::str::is_empty());
+
+        println!("DEBUG create_portfolio {p:?}");
     }
 
     pub fn portfolio_path(&self, name: &str) -> std::path::PathBuf {
@@ -57,13 +61,16 @@ impl TestContext {
     }
 
     pub fn show_empty_portfolio(&self, name: &str) {
-        self.cmd()
+        let p = self
+            .cmd()
             .args(["show", "--name", name])
             .assert()
             .success()
             .code(0)
             .stdout(predicate::str::contains("No trades found"))
             .stderr(predicate::str::is_empty());
+
+        println!("DEBUG show_empty_portfolio {p:?}");
     }
 
     pub fn add_tx_buy_btc(&self, portfolio: &str, qty: &str, price: &str, fee: &str) {

@@ -1,6 +1,13 @@
 # local-portfolio-tracker
 Local CLI that tracks portfolio in CSV file
 
+## Specs 
+
+Persisting portfolio data to CSV file. Each portfolio should have it's Base Currency defined, if not defined it should be USD.
+
+CSV file can have a first line, before CSV header, as metadata comment which would define base currency in format `# base_currency: EUR`
+
+In case there are transaction that has quote currency other than the base currency, it will cause an error. 
 
 #### CLI usage examples
 

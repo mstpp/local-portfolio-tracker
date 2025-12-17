@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use portfolio_tracker::cli::{Cli, Cmd};
-use portfolio_tracker::portfolio::Portfolio;
+use portfolio_tracker::portfolio;
 use portfolio_tracker::settings::Settings;
 use portfolio_tracker::trade;
 
@@ -12,16 +12,16 @@ fn main() -> Result<()> {
 
     match &cli.commands {
         Cmd::List => {
-            trade::list_csv_files(&settings)?;
+            portfolio::list_csv_files(&settings)?;
         }
         Cmd::New { name } => {
-            trade::new(name.as_str(), &settings)?;
+            portfolio::new(name.as_str(), &settings)?;
         }
         Cmd::Show { name } => {
-            trade::show_trades(name, &settings)?; // display only what is in the CSV file
+            portfolio::show_trades(name, &settings)?;
         }
         Cmd::Report { name } => {
-            Portfolio::print_unrealized_pnl(settings.path_for(name))?;
+            portfolio::Portfolio::print_unrealized_pnl(settings.path_for(name))?;
         }
         Cmd::AddTx {
             name,
