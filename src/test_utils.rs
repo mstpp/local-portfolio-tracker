@@ -36,13 +36,14 @@ pub mod fixtures {
 
 #[cfg(test)]
 pub mod helpers {
-    use crate::currency::QuoteCurrency;
+    use crate::currency::Ticker;
     use crate::settings::Settings;
     use crate::trade::Trade;
     use std::fs;
     use std::io::Write;
     use std::path::PathBuf;
     use std::rc::Rc;
+    use std::str::FromStr;
     use tempfile::TempDir;
 
     pub fn create_test_csv(dir: &TempDir, name: &str, content: &str) -> PathBuf {
@@ -55,7 +56,7 @@ pub mod helpers {
     pub fn create_test_settings(base_path: PathBuf) -> Rc<Settings> {
         Rc::new(Settings {
             portfolio_dir: base_path,
-            base_currency: QuoteCurrency::Usd,
+            base_currency: Ticker::from_str("USD").unwrap(),
         })
     }
 

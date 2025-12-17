@@ -1,5 +1,4 @@
-use crate::cli::Cli;
-use crate::currency::QuoteCurrency;
+use crate::{cli::Cli, currency::Ticker};
 use anyhow::{Context, Result};
 use config::Config;
 use serde::{Deserialize, Serialize};
@@ -14,14 +13,16 @@ pub struct Settings {
     // TODO add new type (currency that can be base)
     // for now, validate it's in small set (USD,BTC)
     #[serde(default = "default_base_currency")]
-    pub base_currency: QuoteCurrency,
+    pub base_currency: Ticker,
 }
 
 fn default_portfolio_dir() -> PathBuf {
     PathBuf::from("./portfolios")
 }
-fn default_base_currency() -> QuoteCurrency {
-    QuoteCurrency::Usd
+fn default_base_currency() -> Ticker {
+    Ticker {
+        id: "USD".to_string(),
+    }
 }
 
 impl Default for Settings {

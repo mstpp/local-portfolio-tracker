@@ -1,5 +1,5 @@
 use crate::currency::Currency;
-use crate::currency::{QuoteCurrency, Ticker};
+use crate::currency::Ticker;
 use crate::settings::Settings;
 use crate::tx::Tx;
 use anyhow::{Context, Result, bail};
@@ -160,7 +160,7 @@ impl<'de> Deserialize<'de> for Side {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TradingPair {
     pub base: Ticker,
-    pub quote: QuoteCurrency,
+    pub quote: Ticker,
 }
 
 impl Serialize for TradingPair {
@@ -203,7 +203,7 @@ impl<'de> Deserialize<'de> for TradingPair {
         }
 
         let base_curr = Ticker::from_str(&parts[0]).map_err(serde::de::Error::custom)?;
-        let quote_curr = QuoteCurrency::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
+        let quote_curr = Ticker::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
 
         Ok(TradingPair {
             base: base_curr,
@@ -638,7 +638,9 @@ mod tests {
                         base: Ticker {
                             id: "ETH".to_string()
                         },
-                        quote: QuoteCurrency::Usd
+                        quote: Ticker {
+                            id: "USD".to_string()
+                        }
                     }
                 },
                 d
@@ -677,7 +679,9 @@ mod tests {
                         base: Ticker {
                             id: "BTC".to_string()
                         },
-                        quote: QuoteCurrency::Usd
+                        quote: Ticker {
+                            id: "USD".to_string()
+                        }
                     }
                 },
                 d

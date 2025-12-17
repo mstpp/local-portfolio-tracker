@@ -1,9 +1,9 @@
 // #[path = "common.rs"] // when no dir structure, analyzer sees dead code
 // mod common;
 use crate::common::assertions::stdout_list_has;
-
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;
+use std::io::Write;
 use tempfile::TempDir;
 
 pub struct TestContext {
@@ -21,6 +21,13 @@ impl TestContext {
         let mut cmd = cargo_bin_cmd!("portfolio-tracker");
         cmd.env("LPT_PORTFOLIO_DIR", self.temp_dir.path());
         cmd
+    }
+
+    pub fn create_eur_portfolio(&self, name: &str, data: &str) {
+        let mut dir_path = self.temp_dir.path().join(name);
+        dir_path.set_extension("csv");
+        let mut file = std::fs::File::create(dir_path).unwrap();
+        write!(file, "{}", data).unwrap();
     }
 
     pub fn create_portfolio(&self, name: &str) {
@@ -71,6 +78,19 @@ impl TestContext {
             .stderr(predicate::str::is_empty());
 
         println!("DEBUG show_empty_portfolio {p:?}");
+    }
+
+    pub fn show_portfolio(&self, name: &str) {
+        let p = self
+            .cmd()
+            .args(["show", "--name", name])
+            .assert()
+            .success()
+            .code(0)
+            .stderr(predicate::str::is_empty())
+            .stdout(predicate::str::contains("created_at"));
+
+        println!("DEBUG show_portfolio {p:?}");
     }
 
     pub fn add_tx_buy_btc(&self, portfolio: &str, qty: &str, price: &str, fee: &str) {
