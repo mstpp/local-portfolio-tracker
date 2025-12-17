@@ -25,6 +25,14 @@ pub struct Currency {
     pub currency_type: CurrencyType,
 }
 
+impl Default for Currency {
+    fn default() -> Self {
+        Self {
+            ticker: "USD".to_string(),
+            currency_type: CurrencyType::Fiat,
+        }
+    }
+}
 impl Currency {
     /// USD is the base currency
     pub fn is_usd(&self) -> bool {

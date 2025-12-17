@@ -9,15 +9,13 @@ use std::time::{Duration, Instant};
 static QUOTE_CACHE: LazyLock<Mutex<Option<QuoteCache>>> = LazyLock::new(|| Mutex::new(None));
 const CACHE_DURATION: Duration = Duration::from_secs(60);
 const GECKO_TICKER_IDS: &str = "data/coingecko.csv";
-const GECKO_QUOTE_USD: &str =
-    "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies=usd";
 
 struct QuoteCache {
     quotes: HashMap<String, f64>,
     last_updated: Instant,
 }
 
-fn get_cached_quotes() -> Result<HashMap<String, f64>> {
+fn get_cached_quotes(base: &str) -> Result<HashMap<String, f64>> {
     let mut cache = QUOTE_CACHE.lock().unwrap();
 
     // Check if cache is valid
@@ -28,7 +26,7 @@ fn get_cached_quotes() -> Result<HashMap<String, f64>> {
 
     if needs_refresh {
         // Fetch fresh quotes
-        let quotes = get_quotes(&*CRYPTO)?;
+        let quotes = get_quotes(&*CRYPTO, base)?;
         *cache = Some(QuoteCache {
             quotes: quotes.clone(),
             last_updated: Instant::now(),
@@ -40,8 +38,8 @@ fn get_cached_quotes() -> Result<HashMap<String, f64>> {
     }
 }
 
-pub fn quote_usd(currency: &Currency) -> Result<Decimal> {
-    let quotes = get_cached_quotes()?;
+pub fn quote_in_base(currency: &Currency, base: &str) -> Result<Decimal> {
+    let quotes = get_cached_quotes(base)?;
     let quote = quotes
         .get(&currency.ticker)
         .ok_or(anyhow!("quote missing"))?;
@@ -61,7 +59,7 @@ struct Price {
 /// Coingecko API accepts ids, while we are using short tickers elsewhere
 /// that is why translation from ticker to id is required
 /// e.g ticker: BTC -> id: bitcoin
-pub fn get_quotes<I, S>(ticks: I) -> Result<HashMap<String, f64>>
+pub fn get_quotes<I, S>(ticks: I, base: &str) -> Result<HashMap<String, f64>>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<str>,
@@ -77,8 +75,12 @@ where
     let id_ticker_hm: HashMap<String, String> = ids.clone().into_iter().zip(tickers).collect();
 
     // API endpoint URL with comma separated ids
-    let url = GECKO_QUOTE_USD.replace("{}", &ids.join(","));
-    let res = reqwest::blocking::get(url)?.json::<HashMap<String, Price>>()?;
+    let endpoint = format!(
+        "https://api.coingecko.com/api/v3/simple/price?ids={}&vs_currencies={}",
+        &ids.join(","),
+        base
+    );
+    let res = reqwest::blocking::get(endpoint)?.json::<HashMap<String, Price>>()?;
 
     // need to convert back ids to tickers
     let quotes_hm = res

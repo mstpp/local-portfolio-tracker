@@ -1,5 +1,5 @@
 use crate::currency::{Currency, CurrencyType};
-use crate::quote::quote_usd;
+use crate::quote::quote_in_base;
 use crate::settings::Settings;
 use crate::trade::{CSV_HEADER, parse_csv_file};
 use crate::tx::Tx;
@@ -20,6 +20,7 @@ use time::macros::format_description;
 #[derive(Debug)]
 pub struct Portfolio {
     pub positions: HashMap<Currency, Position>,
+    pub base: Currency,
     // pub transactions: Vec<Tx>,
 }
 
@@ -27,7 +28,8 @@ impl Portfolio {
     pub fn new() -> Self {
         Portfolio {
             positions: HashMap::new(),
-            // transactions: Vec::new(),
+            base: Currency::default(), // default is USD
+                                       // transactions: Vec::new(),
         }
     }
 
@@ -43,7 +45,7 @@ impl Portfolio {
         if currency == Currency::from_ticker("USD").unwrap() {
             pos.cost_base += amount;
         } else {
-            pos.cost_base += amount * quote_usd(&currency)?; // get real quote TODO
+            pos.cost_base += amount * quote_in_base(&currency, "USD")?; // TODO fix 
         }
 
         Ok(())
@@ -138,7 +140,7 @@ impl Portfolio {
         for (currency, position) in pf.positions.iter() {
             if currency.currency_type == CurrencyType::Crypto {
                 let avg_price = position.cost_base / position.balance;
-                let current_balance = position.balance * quote_usd(currency)?;
+                let current_balance = position.balance * quote_in_base(currency, "usd")?; // TODO fix hardcoded usd
 
                 total_balance += current_balance;
                 total_cost_base += position.cost_base;
@@ -327,7 +329,7 @@ mod tests {
     #[rstest]
     fn test_deposit_sets_initial_cost_basis(portfolio_with_10_btc: Portfolio) {
         let pos = portfolio_with_10_btc.positions.get(&BTC).unwrap();
-        let btc_val = dec!(10) * quote_usd(&BTC).unwrap();
+        let btc_val = dec!(10) * quote_in_base(&BTC, "USD").unwrap(); // TODO fix hardcoded USD
         assert_eq!(pos.cost_base, btc_val);
     }
 
