@@ -1,10 +1,15 @@
 # E2E test scenarios 
 
 ## Cli tests 
+
+```bash
+cargo t --test cli
+```
+
 ### Help 
 
 ```bash
-cargo t --test help_cmd_tests
+cargo t --test cli help_tests
 ```
 
 - [x] Help `--help` and `help` (long), validate complete exact stdout
@@ -23,7 +28,7 @@ cargo t --test help_cmd_tests
 ### List Portfolios
 
 ```bash
-cargo t --test list_cmd_tests
+cargo t --test cli list_tests
 ```
 
 - [x] List Portfolios (none yet) - prints an empty state, header only message and exits 0, exact stdout match
@@ -34,7 +39,7 @@ cargo t --test list_cmd_tests
 
 
 ```bash
-cargo t --test new_cmd_tests
+cargo t --test cli new_tests
 ```
 
 - [] Create New Portfolio (happy path)
@@ -48,7 +53,7 @@ Second new <name> fails gracefully with a clear "File exists" error and non-zero
 ### Show Trades
 
 ```bash
-cargo t --test show_cmd_tests
+cargo t --test cli show_tests
 ```
 
 - [x] Show Trades on Empty Portfolio
@@ -57,7 +62,7 @@ show <name> on a newly created portfolio renders headers and "no trades" message
 ### Add Tx
 
 ```bash
-cargo t --test add_tx_cmd_tests
+cargo t --test cli add_tx_tests
 ```
 
 - [x] Add BUY Transaction (simple)

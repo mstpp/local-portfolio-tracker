@@ -1,7 +1,4 @@
-mod common;
-mod fixtures;
-
-use crate::fixtures::TestContext;
+use crate::common::fixtures::TestContext;
 
 #[test]
 fn show_trades_on_empty_portfolio() {

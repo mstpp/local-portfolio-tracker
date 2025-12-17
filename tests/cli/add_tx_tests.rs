@@ -1,7 +1,5 @@
-mod common;
-mod fixtures;
+use crate::common::fixtures::TestContext;
 
-use crate::fixtures::TestContext;
 use predicates::prelude::*;
 
 #[test]

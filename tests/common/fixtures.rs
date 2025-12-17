@@ -1,6 +1,6 @@
-#[path = "common.rs"] // when no dir structure, analyzer sees dead code
-mod common;
-use crate::common::stdout_list_has;
+// #[path = "common.rs"] // when no dir structure, analyzer sees dead code
+// mod common;
+use crate::common::assertions::stdout_list_has;
 
 use assert_cmd::cargo::cargo_bin_cmd;
 use predicates::prelude::*;

@@ -1,7 +1,4 @@
-mod common;
-mod fixtures;
-
-use crate::fixtures::TestContext;
+use crate::common::fixtures::TestContext;
 
 #[test]
 fn report_single_ticker_single_tx_test() {
