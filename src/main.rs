@@ -25,7 +25,10 @@ fn main() -> Result<()> {
             portfolio::show_trades(name, &settings.borrow())?;
         }
         Cmd::Report { name } => {
-            portfolio::Portfolio::print_unrealized_pnl(settings.borrow().path_for(name))?;
+            portfolio::Portfolio::print_unrealized_pnl(
+                settings.borrow().path_for(name),
+                settings.borrow().base_currency.id.as_str(),
+            )?;
         }
         Cmd::AddTx {
             name,

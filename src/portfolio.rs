@@ -21,15 +21,13 @@ use time::macros::format_description;
 pub struct Portfolio {
     pub positions: HashMap<Currency, Position>,
     pub base: Currency,
-    // pub transactions: Vec<Tx>,
 }
 
 impl Portfolio {
     pub fn new() -> Self {
         Portfolio {
             positions: HashMap::new(),
-            base: Currency::default(), // default is USD
-                                       // transactions: Vec::new(),
+            base: Currency::default(),
         }
     }
 
@@ -42,10 +40,10 @@ impl Portfolio {
         pos.balance += amount;
 
         // For USD, cost_base should equal balance (1:1)
-        if currency == Currency::from_ticker("USD").unwrap() {
+        if currency == self.base {
             pos.cost_base += amount;
         } else {
-            pos.cost_base += amount * quote_in_base(&currency, "USD")?; // TODO fix 
+            pos.cost_base += amount * quote_in_base(&currency, &self.base.ticker)?;
         }
 
         Ok(())
@@ -93,8 +91,10 @@ impl Portfolio {
     }
 
     pub fn from_csv<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let mut pf = Portfolio::new();
         let (csv_conf, trades) = parse_csv_file(&path)?;
+
+        let mut pf = Portfolio::new();
+        pf.base = Currency::from_ticker(&csv_conf.base_currency)?;
 
         for trade in trades {
             let amount = trade.amount * trade.price + trade.fee;
@@ -109,19 +109,19 @@ impl Portfolio {
         Ok(pf)
     }
 
-    // +--------+---------+------------+------------+---------+
-    // | Ticker | Balance | Cost Base  | Avg Price  | PnL %   |
-    // +--------+---------+------------+------------+---------+
-    // | ETH    | 11.5    | $42,555.75 | $3,700.50  | -18.20% |
-    // +--------+---------+------------+------------+---------+
-    // | BTC    | 3.5     | $87,515.31 | $25,004.38 | 257.50% |
-    // +--------+---------+------------+------------+---------+
+    // +--------+---------+---------------+---------------+---------+
+    // | Ticker | Balance | Cost Base     | Avg Price     | PnL %   |
+    // +--------+---------+---------------+---------------+---------+
+    // | ETH    | 11.0    | 40,705.50 USD | 3,700.50 USD  | -23.86% |
+    // +--------+---------+---------------+---------------+---------+
+    // | BTC    | 3.5     | 87,515.31 USD | 25,004.38 USD | 242.57% |
+    // +--------+---------+---------------+---------------+---------+
     // =================================
-    // Portfolio:      $347_681.69
-    // Total PnL:      $217_610.63
-    // Total PnL:      167.30%
+    // Portfolio:      330_793.85 USD
+    // Total PnL:      202_573.04 USD
+    // Total PnL:      157.99%
     // =================================
-    pub fn print_unrealized_pnl<P: AsRef<Path>>(path: P) -> Result<()> {
+    pub fn print_unrealized_pnl<P: AsRef<Path>>(path: P, ticker: &str) -> Result<()> {
         let pf = Portfolio::from_csv(path)?;
 
         if pf.positions.len() == 0 {
@@ -140,7 +140,7 @@ impl Portfolio {
         for (currency, position) in pf.positions.iter() {
             if currency.currency_type == CurrencyType::Crypto {
                 let avg_price = position.cost_base / position.balance;
-                let current_balance = position.balance * quote_in_base(currency, "usd")?; // TODO fix hardcoded usd
+                let current_balance = position.balance * quote_in_base(currency, ticker)?;
 
                 total_balance += current_balance;
                 total_cost_base += position.cost_base;
@@ -151,8 +151,16 @@ impl Portfolio {
                 table.add_row(row![
                     currency.ticker,
                     position.balance.round_dp(2),
-                    format!("${}", position.cost_base.round_dp(2).separate_with_commas()),
-                    format!("${}", avg_price.round_dp(2).separate_with_commas()),
+                    format!(
+                        "{} {}",
+                        position.cost_base.round_dp(2).separate_with_commas(),
+                        pf.base.ticker
+                    ),
+                    format!(
+                        "{} {}",
+                        avg_price.round_dp(2).separate_with_commas(),
+                        pf.base.ticker
+                    ),
                     format!("{:.2}%", pnl_percent)
                 ]);
             }
@@ -164,14 +172,16 @@ impl Portfolio {
 
         println!("=================================");
         println!(
-            "Portfolio:\t${}",
-            total_balance.round_dp(2).separate_with_underscores()
+            "Portfolio:\t{} {}",
+            total_balance.round_dp(2).separate_with_underscores(),
+            pf.base.ticker
         );
         println!(
-            "Total PnL:\t${}",
+            "Total PnL:\t{} {}",
             (total_balance - total_cost_base)
                 .round_dp(2)
-                .separate_with_underscores()
+                .separate_with_underscores(),
+            pf.base.ticker
         );
         println!(
             "Total PnL:\t{}%",
@@ -289,6 +299,11 @@ pub fn new(name: &str, settings: &Settings) -> Result<()> {
     Ok(())
 }
 
+/*
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+TESTING
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+*/
 #[cfg(test)]
 mod tests {
     use super::*;
