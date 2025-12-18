@@ -23,6 +23,8 @@ pub enum Cmd {
     New {
         #[arg(short, long)]
         name: String,
+        #[arg(long)]
+        currency: Option<String>,
     },
     /// Show all transactions from portfolio
     #[command(alias = "s")]

@@ -1,9 +1,9 @@
 use crate::{cli::Cli, currency::Ticker};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use config::Config;
 use serde::{Deserialize, Serialize};
 use shellexpand::tilde;
-use std::path::PathBuf;
+use std::{path::PathBuf, str::FromStr};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
@@ -98,5 +98,11 @@ impl Settings {
 
     pub fn path_for(&self, name: &str) -> PathBuf {
         self.portfolio_dir.clone().join(name).with_extension("csv")
+    }
+
+    pub fn update_base_currency(&mut self, currency: &str) -> Result<()> {
+        let ticker = Ticker::from_str(currency).map_err(|e| anyhow!("{}", e))?;
+        self.base_currency = ticker;
+        Ok(())
     }
 }

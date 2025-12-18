@@ -14,16 +14,11 @@ cargo t --test cli help_tests
 
 - [x] Help `--help` and `help` (long), validate complete exact stdout
 - [x] Help `-h` (short) command, validate complete exact stdout
-- [] Long help for list command
-- [] Short help for list command
-- [] Long help for new command
-- [] Short help for new command
-- [] Long help for show command
-- [] Short help for show command
-- [] Long help for report command
-- [] Short help for report command
-- [] Long help for add-tx command
-- [] Short help for add-tx command
+- [x] Long and short help for command: new
+- [] Long and short help for command: list
+- [] Long and short help for command: show
+- [] Long and short help for command: report
+- [] Long and short help for command: add-tx
 
 ### List Portfolios
 
@@ -42,12 +37,13 @@ cargo t --test cli list_tests
 cargo t --test cli new_tests
 ```
 
-- [] Create New Portfolio (happy path)
+- [x] Create New Portfolio (happy path)
 	- new <name> creates directory/files,
 	- rerun list shows the new portfolio,
 	- content: it has correct first line comment
 	- content: it has correct header
 - [x] Create Portfolio That Already Exists - Second new returns "File exists" msg
+- [x] Create Portfolio with non-default currency (EUR)
 
 ### Show Trades
 

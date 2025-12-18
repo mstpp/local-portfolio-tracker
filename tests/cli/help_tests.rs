@@ -64,3 +64,23 @@ Options:
         .stdout(predicate::str::diff(expected_help)) // Exact match with diff
         .stderr(predicate::str::is_empty());
 }
+
+#[test]
+fn show_help_for_new_cmd() {
+    let expected = "\
+Create new portfolio
+
+Usage: portfolio-tracker new [OPTIONS] --name <NAME>
+
+Options:
+  -n, --name <NAME>          
+      --currency <CURRENCY>  
+  -h, --help                 Print help
+";
+    let mut cmd = cargo_bin_cmd!("portfolio-tracker");
+    cmd.args(["new", "-h"])
+        .assert()
+        .success()
+        .stderr(predicate::str::is_empty())
+        .stdout(predicate::str::diff(expected));
+}

@@ -29,6 +29,7 @@ impl Default for Currency {
         }
     }
 }
+
 impl Currency {
     /// USD is the base currency
     pub fn is_usd(&self) -> bool {

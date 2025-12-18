@@ -275,7 +275,7 @@ pub fn new(name: &str, settings: &Settings) -> Result<()> {
     }
 
     let mut file = File::create_new(&file_path)?;
-    writeln!(file, "# base_currency: USD")?;
+    writeln!(file, "# base_currency: {}", settings.base_currency.id)?;
 
     // let file = std::fs::OpenOptions::new().append(true).open(&file_path)?;
     let mut wtr = csv::Writer::from_writer(file);
