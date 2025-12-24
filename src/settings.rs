@@ -9,9 +9,6 @@ use std::path::PathBuf;
 pub struct Settings {
     #[serde(default = "default_portfolio_dir")]
     pub portfolio_dir: PathBuf,
-
-    // TODO add new type (currency that can be base)
-    // for now, validate it's in small set (USD,BTC)
     #[serde(default)]
     pub base_currency: Currency,
 }
@@ -67,7 +64,7 @@ impl Settings {
         // Validate and show warnings
         let warnings = settings.validate();
         for warning in warnings {
-            eprintln!("⚠️  Config warning: {}", warning);
+            eprintln!("Config warning: {}", warning);
         }
 
         Ok(settings)
