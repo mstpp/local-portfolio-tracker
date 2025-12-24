@@ -1,9 +1,9 @@
-use crate::{cli::Cli, currency::Ticker};
-use anyhow::{Context, Result, anyhow};
+use crate::{cli::Cli, currency::Currency};
+use anyhow::{Context, Result};
 use config::Config;
 use serde::{Deserialize, Serialize};
 use shellexpand::tilde;
-use std::{path::PathBuf, str::FromStr};
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
@@ -12,24 +12,19 @@ pub struct Settings {
 
     // TODO add new type (currency that can be base)
     // for now, validate it's in small set (USD,BTC)
-    #[serde(default = "default_base_currency")]
-    pub base_currency: Ticker,
+    #[serde(default)]
+    pub base_currency: Currency,
 }
 
 fn default_portfolio_dir() -> PathBuf {
     PathBuf::from("./portfolios")
-}
-fn default_base_currency() -> Ticker {
-    Ticker {
-        id: "USD".to_string(),
-    }
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
             portfolio_dir: default_portfolio_dir(),
-            base_currency: default_base_currency(),
+            base_currency: Currency::default(),
         }
     }
 }
@@ -101,8 +96,8 @@ impl Settings {
     }
 
     pub fn update_base_currency(&mut self, currency: &str) -> Result<()> {
-        let ticker = Ticker::from_str(currency).map_err(|e| anyhow!("{}", e))?;
-        self.base_currency = ticker;
+        let curr = Currency::new(currency)?;
+        self.base_currency = curr;
         Ok(())
     }
 }

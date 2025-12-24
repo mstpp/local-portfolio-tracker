@@ -27,7 +27,7 @@ fn main() -> Result<()> {
         Cmd::Report { name } => {
             portfolio::Portfolio::print_unrealized_pnl(
                 settings.borrow().path_for(name),
-                settings.borrow().base_currency.id.as_str(),
+                settings.borrow().base_currency.ticker(),
             )?;
         }
         Cmd::AddTx {

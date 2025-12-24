@@ -41,7 +41,7 @@ fn get_cached_quotes(base: &str) -> Result<HashMap<String, f64>> {
 pub fn quote_in_base(currency: &Currency, base: &str) -> Result<Decimal> {
     let quotes = get_cached_quotes(base)?;
     let quote = quotes
-        .get(&currency.ticker)
+        .get(currency.ticker())
         .ok_or(anyhow!("quote missing"))?;
     Ok(Decimal::from_f64_retain(*quote).ok_or(anyhow!("can't decimal from f64"))?)
 }

@@ -32,9 +32,9 @@ impl Tx {
             .collect();
 
         let buy_currency =
-            Currency::from_ticker(str_split[1].as_str()).with_context(|| "parse buy ticker err")?;
-        let sell_currency = Currency::from_ticker(str_split[4].as_str())
-            .with_context(|| "prase sell ticker err")?;
+            Currency::new(str_split[1].as_str()).with_context(|| "parse buy ticker err")?;
+        let sell_currency =
+            Currency::new(str_split[4].as_str()).with_context(|| "prase sell ticker err")?;
 
         Ok(Tx {
             buy: buy_currency,

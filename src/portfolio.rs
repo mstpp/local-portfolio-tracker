@@ -43,7 +43,7 @@ impl Portfolio {
         if currency == self.base {
             pos.cost_base += amount;
         } else {
-            pos.cost_base += amount * quote_in_base(&currency, &self.base.ticker)?;
+            pos.cost_base += amount * quote_in_base(&currency, &self.base.ticker())?;
         }
 
         Ok(())
@@ -65,7 +65,7 @@ impl Portfolio {
         }
 
         // Calculate proportional cost basis being sold
-        let avg_cost = if tx.sell.ticker == "USD".to_string() {
+        let avg_cost = if tx.sell.ticker() == "USD".to_string() {
             dec!(1)
         } else {
             // (sell_pos.cost_base / sell_pos.balance).round_dp(2)
@@ -94,15 +94,12 @@ impl Portfolio {
         let (csv_conf, trades) = parse_csv_file(&path)?;
 
         let mut pf = Portfolio::new();
-        pf.base = Currency::from_ticker(&csv_conf.base_currency)?;
+        pf.base = Currency::new(&csv_conf.base_currency)?;
 
         for trade in trades {
             let amount = trade.amount * trade.price + trade.fee;
             // deposit base currency (USD), so I can add tx
-            pf.deposit(
-                Currency::from_ticker(csv_conf.base_currency.as_str())?,
-                amount,
-            )?;
+            pf.deposit(Currency::new(csv_conf.base_currency.as_str())?, amount)?;
             pf.add_tx(trade.to_tx()?)?;
         }
 
@@ -138,7 +135,7 @@ impl Portfolio {
         table.add_row(row!["Ticker", "Balance", "Cost Base", "Avg Price", "PnL %"]);
 
         for (currency, position) in pf.positions.iter() {
-            if currency.currency_type == CurrencyType::Crypto {
+            if currency.currency_type() == CurrencyType::Crypto {
                 let avg_price = position.cost_base / position.balance;
                 let current_balance = position.balance * quote_in_base(currency, ticker)?;
 
@@ -149,17 +146,17 @@ impl Portfolio {
                     ((current_balance - position.cost_base) / position.cost_base) * dec!(100);
 
                 table.add_row(row![
-                    currency.ticker,
+                    currency,
                     position.balance.round_dp(2),
                     format!(
                         "{} {}",
                         position.cost_base.round_dp(2).separate_with_commas(),
-                        pf.base.ticker
+                        pf.base
                     ),
                     format!(
                         "{} {}",
                         avg_price.round_dp(2).separate_with_commas(),
-                        pf.base.ticker
+                        pf.base
                     ),
                     format!("{:.2}%", pnl_percent)
                 ]);
@@ -174,14 +171,14 @@ impl Portfolio {
         println!(
             "Portfolio:\t{} {}",
             total_balance.round_dp(2).separate_with_underscores(),
-            pf.base.ticker
+            pf.base
         );
         println!(
             "Total PnL:\t{} {}",
             (total_balance - total_cost_base)
                 .round_dp(2)
                 .separate_with_underscores(),
-            pf.base.ticker
+            pf.base
         );
         println!(
             "Total PnL:\t{}%",
@@ -285,7 +282,7 @@ pub fn new(name: &str, settings: &Settings) -> Result<()> {
     }
 
     let mut file = File::create_new(&file_path)?;
-    writeln!(file, "# base_currency: {}", settings.base_currency.id)?;
+    writeln!(file, "# base_currency: {}", settings.base_currency)?;
 
     // let file = std::fs::OpenOptions::new().append(true).open(&file_path)?;
     let mut wtr = csv::Writer::from_writer(file);
@@ -311,10 +308,10 @@ mod tests {
     use std::sync::LazyLock;
 
     static BTC: LazyLock<Currency> =
-        LazyLock::new(|| Currency::from_ticker("BTC").expect("BTC should be valid"));
+        LazyLock::new(|| Currency::new("BTC").expect("BTC should be valid"));
 
     static USD: LazyLock<Currency> =
-        LazyLock::new(|| Currency::from_ticker("USD").expect("USD should be valid"));
+        LazyLock::new(|| Currency::new("USD").expect("USD should be valid"));
 
     // Test fixtures for common scenarios
     #[fixture]

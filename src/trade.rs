@@ -1,5 +1,4 @@
 use crate::currency::Currency;
-use crate::currency::Ticker;
 use crate::settings::Settings;
 use crate::tx::Tx;
 use anyhow::{Context, Result, bail};
@@ -8,7 +7,6 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::path::Path;
-use std::str::FromStr;
 use time::OffsetDateTime;
 use time::format_description;
 
@@ -46,15 +44,15 @@ impl Trade {
     pub fn to_tx(&self) -> Result<Tx> {
         match self.side {
             Side::Buy => Ok(Tx {
-                buy: Currency::from_ticker(&self.pair.base.id)?,
+                buy: self.pair.base.clone(),
                 buy_size: self.amount,
-                sell: Currency::from_ticker(&self.pair.quote.to_string())?,
+                sell: self.pair.quote.clone(),
                 sell_size: self.amount * self.price + self.fee,
             }),
             Side::Sell => Ok(Tx {
-                buy: Currency::from_ticker(&self.pair.quote.to_string())?,
+                buy: self.pair.quote.clone(),
                 buy_size: self.amount * self.price - self.fee,
-                sell: Currency::from_ticker(&self.pair.base.id)?,
+                sell: self.pair.base.clone(),
                 sell_size: self.amount,
             }),
         }
@@ -159,8 +157,8 @@ impl<'de> Deserialize<'de> for Side {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TradingPair {
-    pub base: Ticker,
-    pub quote: Ticker,
+    pub base: Currency,
+    pub quote: Currency,
 }
 
 impl Serialize for TradingPair {
@@ -194,16 +192,16 @@ impl<'de> Deserialize<'de> for TradingPair {
         }
 
         // base and quote should not be equal
-        let base = Currency::from_ticker(parts[0].trim())
+        let base = Currency::new(parts[0].trim())
             .map_err(|e| serde::de::Error::custom(format!("base err: {}", e)))?;
-        let quote = Currency::from_ticker(parts[1].trim())
+        let quote = Currency::new(parts[1].trim())
             .map_err(|e| serde::de::Error::custom(format!("quote err: {}", e)))?;
         if base == quote {
             return Err(serde::de::Error::custom("base and quote can't be equal"));
         }
 
-        let base_curr = Ticker::from_str(&parts[0]).map_err(serde::de::Error::custom)?;
-        let quote_curr = Ticker::from_str(&parts[1]).map_err(serde::de::Error::custom)?;
+        let base_curr = Currency::new(&parts[0]).map_err(serde::de::Error::custom)?;
+        let quote_curr = Currency::new(&parts[1]).map_err(serde::de::Error::custom)?;
 
         Ok(TradingPair {
             base: base_curr,
@@ -599,6 +597,7 @@ mod tests {
     mod trading_pair {
         use super::*;
         use crate::test_utils::fixtures::tickers;
+        use pretty_assertions;
         use rstest::*;
 
         #[derive(Debug, Deserialize, Serialize, PartialEq)]
@@ -635,12 +634,8 @@ mod tests {
             assert_eq!(
                 TestPair {
                     pair: TradingPair {
-                        base: Ticker {
-                            id: "ETH".to_string()
-                        },
-                        quote: Ticker {
-                            id: "USD".to_string()
-                        }
+                        base: Currency::new("ETH").unwrap(),
+                        quote: Currency::new("USD").unwrap(),
                     }
                 },
                 d
@@ -676,12 +671,8 @@ mod tests {
             assert_eq!(
                 TestPair {
                     pair: TradingPair {
-                        base: Ticker {
-                            id: "BTC".to_string()
-                        },
-                        quote: Ticker {
-                            id: "USD".to_string()
-                        }
+                        base: Currency::new("BTC").unwrap(),
+                        quote: Currency::new("USD").unwrap(),
                     }
                 },
                 d
@@ -723,7 +714,11 @@ mod tests {
         fn test_deserialize_rejects_only_base_no_quote() {
             let json_str = r#"{"pair":"BTC/"}"#;
             let err = serde_json::from_str::<TestPair>(&json_str).unwrap_err();
-            assert!(err.to_string().contains("quote err: unsuported ticker"));
+
+            pretty_assertions::assert_eq!(
+                err.to_string(),
+                "quote err: Unsupported ticker ''. Valid examples: BTC, ETH, USD, USDC at line 1 column 15"
+            );
         }
 
         /// Validates that "/USD" produces an error since the base part is missing.

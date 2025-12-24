@@ -7,8 +7,6 @@ pub mod fixtures {
 
     #[fixture]
     pub fn tickers() {
-        // use crate::currency::init_tickers_from_csv;
-
         let mut file = NamedTempFile::new().unwrap();
         writeln!(
             file,
@@ -22,7 +20,6 @@ pub mod fixtures {
         )
         .unwrap();
         file.flush().unwrap();
-        // let _ = init_tickers_from_csv(file.path().to_path_buf());
     }
 
     #[fixture]
@@ -36,14 +33,13 @@ pub mod fixtures {
 
 #[cfg(test)]
 pub mod helpers {
-    use crate::currency::Ticker;
+    use crate::currency::Currency;
     use crate::settings::Settings;
     use crate::trade::Trade;
     use std::fs;
     use std::io::Write;
     use std::path::PathBuf;
     use std::rc::Rc;
-    use std::str::FromStr;
     use tempfile::TempDir;
 
     pub fn create_test_csv(dir: &TempDir, name: &str, content: &str) -> PathBuf {
@@ -56,7 +52,7 @@ pub mod helpers {
     pub fn create_test_settings(base_path: PathBuf) -> Rc<Settings> {
         Rc::new(Settings {
             portfolio_dir: base_path,
-            base_currency: Ticker::from_str("USD").unwrap(),
+            base_currency: Currency::new("USD").unwrap(),
         })
     }
 
